@@ -46,6 +46,50 @@ func makeValueLabel(_ text: String = "") -> NSTextField {
   return label
 }
 
+/// Whether a piece of navigation state presents its content, shown on the trailing side of a row:
+/// a green check and "Presented", followed by what is presented when there is something to tell,
+/// or a grey cross and "Not presented".
+final class PresentationStateView: NSView {
+  private let symbolView = NSImageView()
+  private let label = NSTextField(labelWithString: "")
+
+  init() {
+    super.init(frame: .zero)
+    symbolView.symbolConfiguration = NSImage.SymbolConfiguration(
+      pointSize: NSFont.systemFontSize, weight: .medium
+    )
+    label.lineBreakMode = .byTruncatingTail
+    // NB: A long description gives way before the row's title and controls do.
+    label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+    let stack = NSStackView(views: [symbolView, label])
+    stack.orientation = .horizontal
+    stack.alignment = .centerY
+    stack.spacing = 4
+    pin(stack, insets: NSEdgeInsets())
+    update(isPresented: false)
+  }
+
+  @available(*, unavailable)
+  required init?(coder: NSCoder) {
+    fatalError("init(coder:) has not been implemented")
+  }
+
+  /// Shows whether the state presents its content, and `detail` about what it presents.
+  func update(isPresented: Bool, detail: String? = nil) {
+    if isPresented {
+      symbolView.image = NSImage(systemSymbolName: "checkmark.circle.fill", accessibilityDescription: nil)
+      symbolView.contentTintColor = .systemGreen
+      label.stringValue = detail.map { "Presented: \($0)" } ?? "Presented"
+      label.textColor = .labelColor
+    } else {
+      symbolView.image = NSImage(systemSymbolName: "xmark.circle.fill", accessibilityDescription: nil)
+      symbolView.contentTintColor = .tertiaryLabelColor
+      label.stringValue = "Not presented"
+      label.textColor = .secondaryLabelColor
+    }
+  }
+}
+
 // MARK: - Forms
 
 /// Lays `sections` out the way System Settings lays out a form: one under another, in a column that

@@ -54,12 +54,6 @@ enum CaseStudyViewBuilder {
         UIKitCaseStudyButton(caseStudy: caseStudy)
     }
     #endif
-    #if canImport(AppKit) && !targetEnvironment(macCatalyst)
-    @ViewBuilder
-    static func buildExpression(_ caseStudy: some AppKitCaseStudy) -> some View {
-        AppKitCaseStudyButton(caseStudy: caseStudy)
-    }
-    #endif
     static func buildPartialBlock(first: some View) -> some View {
         first
     }
@@ -95,37 +89,6 @@ struct SwiftUICaseStudyButton<C: SwiftUICaseStudy>: View {
         }
     }
 }
-
-#if canImport(AppKit) && !targetEnvironment(macCatalyst)
-
-struct AppKitCaseStudyButton<C: AppKitCaseStudy>: View {
-    let caseStudy: C
-    @State var isPresented = false
-    var body: some View {
-//        if caseStudy.isPresentedInSheet {
-//            Button(caseStudy.caseStudyTitle) {
-//                isPresented = true
-//            }
-//            .sheet(isPresented: $isPresented) {
-//                NSViewControllerRepresenting {
-//                    ((caseStudy as? UINavigationController)
-//                        ?? UINavigationController(rootViewController: caseStudy))
-//                        .setUp(caseStudy: caseStudy)
-//                }
-//                .modifier(CaseStudyModifier(caseStudy: caseStudy))
-//            }
-//        } else {
-        NavigationLink(caseStudy.caseStudyTitle) {
-            NSViewControllerRepresenting {
-                caseStudy
-            }
-            .modifier(CaseStudyModifier(caseStudy: caseStudy))
-        }
-//        }
-    }
-}
-
-#endif
 
 #if canImport(UIKit) && !os(watchOS)
 struct UIKitCaseStudyButton<C: UIKitCaseStudy>: View {

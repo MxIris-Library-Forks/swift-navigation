@@ -15,7 +15,7 @@ final class ErasedNavigationStackController: NavigationStackController, AppKitCa
   convenience init(model: Model) {
     @UIBindable var model = model
     self.init(path: $model.path) {
-      ErasedRootViewController()
+      ErasedRootViewController(model: model)
     }
     self.model = model
   }
@@ -28,9 +28,22 @@ final class ErasedNavigationStackController: NavigationStackController, AppKitCa
 
 /// The bottom of the stack, which registers a destination for each type of data on the path.
 private final class ErasedRootViewController: XiblessViewController<NSView> {
+  let model: ErasedNavigationStackController.Model
+
+  init(model: ErasedNavigationStackController.Model) {
+    self.model = model
+    super.init(nibName: nil, bundle: nil)
+  }
+
+  @available(*, unavailable)
+  required init?(coder: NSCoder) {
+    fatalError("init(coder:) has not been implemented")
+  }
+
   override func viewDidLoad() {
     super.viewDidLoad()
     title = "Type-erased path"
+    let pathLabel = makeValueLabel()
 
     navigationDestination(for: Int.self) { number in
       ErasedFeatureViewController(title: "Number \(number)")
@@ -68,9 +81,22 @@ private final class ErasedRootViewController: XiblessViewController<NSView> {
             ),
           ]
         ),
+        FormSection(
+          "Model",
+          footer: "A type-erased path tells how many values it holds, not what they are.",
+          rows: [FormRow("Path", accessories: [pathLabel])]
+        ),
       ],
       to: view
     )
+
+    observe { [unowned self] in
+      pathLabel.stringValue = switch model.path.count {
+      case 0: "Empty"
+      case 1: "1 value"
+      case let count: "\(count) values"
+      }
+    }
   }
 }
 

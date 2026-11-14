@@ -18,7 +18,7 @@ class DismissalViewController: XiblessViewController<NSView>, AppKitCaseStudy {
   override func viewDidLoad() {
     super.viewDidLoad()
 
-    let fruitLabel = makeValueLabel()
+    let fruitSheetState = PresentationStateView()
     let logLabel = makeWrappingLabel()
     logLabel.textColor = .secondaryLabelColor
 
@@ -31,7 +31,7 @@ class DismissalViewController: XiblessViewController<NSView>, AppKitCaseStudy {
             FormRow(
               "Fruit",
               accessories: [
-                fruitLabel,
+                fruitSheetState,
                 makeButton("Present") { [weak self] in
                   self?.model.fruit = .apple
                 },
@@ -45,7 +45,7 @@ class DismissalViewController: XiblessViewController<NSView>, AppKitCaseStudy {
     )
 
     observe { [unowned self] in
-      fruitLabel.stringValue = model.fruit.map { $0.name.prefix(1).uppercased() + $0.name.dropFirst() } ?? "None"
+      fruitSheetState.update(isPresented: model.fruit != nil, detail: model.fruit?.title)
       logLabel.stringValue = model.log.isEmpty ? "Nothing dismissed yet." : model.log.joined(separator: "\n")
     }
 
@@ -94,6 +94,14 @@ class DismissalViewController: XiblessViewController<NSView>, AppKitCaseStudy {
       case .apple: "an apple"
       case .banana: "a banana"
       case .cherry: "a cherry"
+      }
+    }
+
+    var title: String {
+      switch self {
+      case .apple: "Apple"
+      case .banana: "Banana"
+      case .cherry: "Cherry"
       }
     }
 

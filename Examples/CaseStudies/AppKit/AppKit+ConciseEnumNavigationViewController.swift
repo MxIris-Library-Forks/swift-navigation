@@ -23,9 +23,9 @@ class ConciseEnumNavigationViewController: XiblessViewController<NSView>, AppKit
   override func viewDidLoad() {
     super.viewDidLoad()
 
-    let alertStatusLabel = makeValueLabel()
-    let numberSheetStatusLabel = makeValueLabel()
-    let sheetStatusLabel = makeValueLabel()
+    let alertState = PresentationStateView()
+    let numberSheetState = PresentationStateView()
+    let sheetState = PresentationStateView()
 
     addForm(
       [
@@ -36,7 +36,7 @@ class ConciseEnumNavigationViewController: XiblessViewController<NSView>, AppKit
             FormRow(
               "Alert",
               accessories: [
-                alertStatusLabel,
+                alertState,
                 makeButton("Show") { [weak self] in
                   self?.model.destination = .alert("Hello!")
                 },
@@ -45,7 +45,7 @@ class ConciseEnumNavigationViewController: XiblessViewController<NSView>, AppKit
             FormRow(
               "Sheet with a number",
               accessories: [
-                numberSheetStatusLabel,
+                numberSheetState,
                 makeButton("Show") { [weak self] in
                   self?.model.destination = .sheet(.random(in: 1 ... 1_000))
                 },
@@ -54,7 +54,7 @@ class ConciseEnumNavigationViewController: XiblessViewController<NSView>, AppKit
             FormRow(
               "Sheet without a payload",
               accessories: [
-                sheetStatusLabel,
+                sheetState,
                 makeButton("Show") { [weak self] in
                   self?.model.destination = .sheetWithoutPayload
                 },
@@ -67,9 +67,12 @@ class ConciseEnumNavigationViewController: XiblessViewController<NSView>, AppKit
     )
 
     observe { [unowned self] in
-      alertStatusLabel.stringValue = model.destination?.alert != nil ? "Shown" : "Not shown"
-      numberSheetStatusLabel.stringValue = model.destination?.sheet.map { "Showing \($0)" } ?? "Not shown"
-      sheetStatusLabel.stringValue = model.destination?.sheetWithoutPayload != nil ? "Shown" : "Not shown"
+      alertState.update(isPresented: model.destination?.alert != nil)
+      numberSheetState.update(
+        isPresented: model.destination?.sheet != nil,
+        detail: model.destination?.sheet?.description
+      )
+      sheetState.update(isPresented: model.destination?.sheetWithoutPayload != nil)
     }
 
     modal(item: $model.destination.alert, id: \.self) { message in

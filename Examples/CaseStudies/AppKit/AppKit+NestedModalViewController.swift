@@ -18,18 +18,37 @@ class NestedModalViewController: XiblessViewController<NSView>, AppKitCaseStudy 
   override func viewDidLoad() {
     super.viewDidLoad()
 
-    let openButton = makeButton("Open the settings") { [weak self] in
-      self?.model.isSettingsPresented = true
-    }
-    let statusLabel = NSTextField(wrappingLabelWithString: "")
-    addColumn(of: [openButton, statusLabel], to: view)
+    let settingsWindowLabel = makeValueLabel()
+    let confirmationAlertLabel = makeValueLabel()
+    let resetCountLabel = makeValueLabel()
+
+    addForm(
+      [
+        FormSection(
+          "Modals",
+          footer: "Try “Close in 3 seconds” and then “Reset…”: the window waits for the alert to end before it closes.",
+          rows: [
+            FormRow(
+              "Settings window",
+              accessories: [
+                settingsWindowLabel,
+                makeButton("Open") { [weak self] in
+                  self?.model.isSettingsPresented = true
+                },
+              ]
+            ),
+            FormRow("Confirmation alert", accessories: [confirmationAlertLabel]),
+            FormRow("Resets", accessories: [resetCountLabel]),
+          ]
+        ),
+      ],
+      to: view
+    )
 
     observe { [unowned self] in
-      statusLabel.stringValue = """
-        Settings window: \(model.isSettingsPresented ? "open" : "closed")
-        Confirmation alert: \(model.resetConfirmation != nil ? "open" : "closed")
-        Resets: \(model.resetCount)
-        """
+      settingsWindowLabel.stringValue = model.isSettingsPresented ? "Open" : "Closed"
+      confirmationAlertLabel.stringValue = model.resetConfirmation != nil ? "Open" : "Closed"
+      resetCountLabel.stringValue = model.resetCount.description
     }
 
     modal(isPresented: $model.isSettingsPresented) { [unowned self] in

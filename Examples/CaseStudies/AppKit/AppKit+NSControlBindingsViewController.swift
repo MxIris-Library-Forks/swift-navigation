@@ -2,24 +2,7 @@
 import AppKit
 import AppKitNavigation
 
-class XiblessViewController<View: NSView>: NSViewController {
-    lazy var contentView = View()
-
-    override func loadView() {
-        view = contentView
-    }
-
-    override init(nibName nibNameOrNil: NSNib.Name?, bundle nibBundleOrNil: Bundle?) {
-        super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError("")
-    }
-}
-
-class NSControlBindingsViewController: XiblessViewController<NSBox>, AppKitCaseStudy {
+class NSControlBindingsViewController: XiblessViewController<NSView>, AppKitCaseStudy {
     let caseStudyTitle = "NSControl bindings"
     let readMe = """
     This demonstrates how to use the library's `@UIBinding` and `@UIBindable` property wrappers \
@@ -31,51 +14,56 @@ class NSControlBindingsViewController: XiblessViewController<NSBox>, AppKitCaseS
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        contentView.boxType = .custom
-        contentView.borderWidth = 0
+
         let colorWell = NSColorWell(color: $model.color)
         let datePicker = NSDatePicker(date: $model.date)
         let segmentControl = NSSegmentedControl(labels: Model.Segment.allCases.map { "\($0)" }, trackingMode: .selectOne, target: nil, action: nil)
         segmentControl.bind(selectedSegment: $model.segment)
         let slider = NSSlider(value: $model.sliderValue)
+        slider.widthAnchor.constraint(equalToConstant: 180).isActive = true
+        let stepperValueLabel = makeValueLabel()
         let stepper = NSStepper(value: $model.stepperValue)
         let `switch` = NSSwitch(isOn: $model.isOn)
         let textField = NSTextField(text: $model.text)
         textField.bind(focus: $model.focus, equals: .text)
         textField.bind(selection: $model.textSelection)
         textField.bezelStyle = .roundedBezel
-        let label = NSTextField(labelWithString: "")
-        label.maximumNumberOfLines = 0
-        let stack = NSStackView(views: [
-            colorWell,
-            datePicker,
-            segmentControl,
-            slider,
-            stepper,
-            `switch`,
-            textField,
-            label,
-        ])
-        stack.orientation = .vertical
-        stack.spacing = 12
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        contentView.contentView?.addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: view.topAnchor),
-            stack.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            stack.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            colorWell.heightAnchor.constraint(equalToConstant: 50),
-        ])
+        textField.widthAnchor.constraint(equalToConstant: 200).isActive = true
+        let modelLabel = makeWrappingLabel()
+        modelLabel.font = .monospacedSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .regular)
+        modelLabel.textColor = .secondaryLabelColor
+
+        addForm(
+            [
+                FormSection(
+                    "Controls",
+                    rows: [
+                        FormRow("Color well", accessories: [colorWell]),
+                        FormRow("Date picker", accessories: [datePicker]),
+                        FormRow("Segmented control", accessories: [segmentControl]),
+                        FormRow("Slider", accessories: [slider]),
+                        FormRow("Stepper", accessories: [stepperValueLabel, stepper]),
+                        FormRow("Switch", accessories: [`switch`]),
+                        FormRow("Text field", accessories: [textField]),
+                    ]
+                ),
+                FormSection(
+                    "Model",
+                    footer: "Each control writes to the model through its binding, and the model writes back to the control.",
+                    rows: [FormRow(content: modelLabel)]
+                ),
+            ],
+            to: view
+        )
 
         observe { [unowned self] in
-            contentView.fillColor = model.color
+            stepperValueLabel.stringValue = model.stepperValue.formatted()
 
             let textSelection = model.textSelection.map {
                 self.model.text.range(for: $0.range)
             }
 
-            label.stringValue = """
+            modelLabel.stringValue = """
             MyModel(
               color: \(model.color.description),
               date: \(model.date),
@@ -94,7 +82,7 @@ class NSControlBindingsViewController: XiblessViewController<NSBox>, AppKitCaseS
     @MainActor
     @Observable
     final class Model: HashableObject {
-        var color: NSColor = .windowBackgroundColor
+        var color: NSColor = .systemBlue
         var date = Date()
         var focus: Focus?
         var isOn = false

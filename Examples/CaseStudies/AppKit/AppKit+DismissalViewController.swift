@@ -18,14 +18,34 @@ class DismissalViewController: XiblessViewController<NSView>, AppKitCaseStudy {
   override func viewDidLoad() {
     super.viewDidLoad()
 
-    let presentButton = makeButton("Present the first fruit") { [weak self] in
-      self?.model.fruit = .apple
-    }
-    let logLabel = NSTextField(wrappingLabelWithString: "")
+    let fruitLabel = makeValueLabel()
+    let logLabel = makeWrappingLabel()
     logLabel.textColor = .secondaryLabelColor
-    addColumn(of: [presentButton, makeSectionLabel("onDismiss log"), logLabel], to: view)
+
+    addForm(
+      [
+        FormSection(
+          "Sheet",
+          footer: "Done dismisses the sheet the way a user would; its other buttons change the state instead.",
+          rows: [
+            FormRow(
+              "Fruit",
+              accessories: [
+                fruitLabel,
+                makeButton("Present") { [weak self] in
+                  self?.model.fruit = .apple
+                },
+              ]
+            ),
+          ]
+        ),
+        FormSection("onDismiss log", rows: [FormRow(content: logLabel)]),
+      ],
+      to: view
+    )
 
     observe { [unowned self] in
+      fruitLabel.stringValue = model.fruit.map { $0.name.prefix(1).uppercased() + $0.name.dropFirst() } ?? "None"
       logLabel.stringValue = model.log.isEmpty ? "Nothing dismissed yet." : model.log.joined(separator: "\n")
     }
 
@@ -35,8 +55,8 @@ class DismissalViewController: XiblessViewController<NSView>, AppKitCaseStudy {
     }) { [unowned self] fruit in
       MessageViewController(
         message: """
-          This sheet shows \(fruit.name). Done dismisses it yourself; the other buttons change \
-          its state instead.
+          This sheet shows \(fruit.name). Done dismisses it the way a user would; the other \
+          buttons change its state instead.
           """,
         extraButtons: [
           makeButton("Clear the state") { [weak self] in

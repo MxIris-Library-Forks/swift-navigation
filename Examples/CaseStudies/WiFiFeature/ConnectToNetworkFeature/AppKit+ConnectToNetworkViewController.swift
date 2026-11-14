@@ -65,6 +65,7 @@ final class ConnectToNetworkViewController: XiblessViewController<NSView> {
       model.cancelButtonTapped()
     }
     cancelButton.title = "Cancel"
+    cancelButton.keyEquivalent = "\u{1b}"
 
     let joinButton = NSButton()
     joinButton.addAction { [weak self] _ in
@@ -74,6 +75,7 @@ final class ConnectToNetworkViewController: XiblessViewController<NSView> {
       }
     }
     joinButton.title = "Join"
+    joinButton.keyEquivalent = "\r"
 
     let progress = NSProgressIndicator()
     progress.isIndeterminate = true

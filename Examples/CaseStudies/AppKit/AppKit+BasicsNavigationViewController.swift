@@ -1,5 +1,4 @@
 #if canImport(AppKit) && !targetEnvironment(macCatalyst)
-import SwiftUI
 import AppKit
 import AppKitNavigation
 
@@ -14,77 +13,95 @@ class BasicsNavigationViewController: XiblessViewController<NSView>, AppKitCaseS
   override func viewDidLoad() {
     super.viewDidLoad()
 
-    let showAlertButton = NSButton()
-    showAlertButton.addAction { [weak self] _ in
-      self?.model.alert = "Hello!"
-    }
+    let openPanelStatusLabel = makeValueLabel()
+    let chosenFileLabel = makeValueLabel()
+    let numberSheetStatusLabel = makeValueLabel()
+    let sheetStatusLabel = makeValueLabel()
 
-    let showSheetButton = NSButton()
-    showSheetButton.addAction { [weak self] _ in
-      self?.model.sheet = .random(in: 1 ... 1_000)
-      DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-        self?.model.sheet = nil
-      }
-    }
-
-    let showSheetFromBooleanButton = NSButton()
-    showSheetFromBooleanButton.addAction { [weak self] _ in
-      self?.model.isSheetPresented = true
-    }
-
-    let stack = NSStackView(views: [
-      showAlertButton,
-      showSheetButton,
-      showSheetFromBooleanButton,
-    ])
-    stack.orientation = .vertical
-    stack.spacing = 12
-    stack.translatesAutoresizingMaskIntoConstraints = false
-
-    view.addSubview(stack)
-    NSLayoutConstraint.activate([
-      stack.centerYAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerYAnchor),
-      stack.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-      stack.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-    ])
+    addForm(
+      [
+        FormSection(
+          "Optional state",
+          footer: "Setting an optional presents content for its value, and clearing it dismisses the content.",
+          rows: [
+            FormRow(
+              "Open panel",
+              accessories: [
+                openPanelStatusLabel,
+                makeButton("Show") { [weak self] in
+                  self?.model.openPanelMessage = "Choose a file to show its name."
+                },
+              ]
+            ),
+            FormRow("Chosen file", accessories: [chosenFileLabel]),
+            FormRow(
+              "Sheet with a number",
+              subtitle: "Closes itself after 3 seconds",
+              accessories: [
+                numberSheetStatusLabel,
+                makeButton("Show") { [weak self] in
+                  let number = Int.random(in: 1 ... 1_000)
+                  self?.model.sheet = number
+                  DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    // NB: Only the sheet this click presented: it may have been closed, and
+                    //     another one presented, in the meantime.
+                    if self?.model.sheet == number {
+                      self?.model.sheet = nil
+                    }
+                  }
+                },
+              ]
+            ),
+          ]
+        ),
+        FormSection(
+          "Boolean state",
+          footer: "The sheet's Done button sets the Boolean back to false.",
+          rows: [
+            FormRow(
+              "Sheet",
+              accessories: [
+                sheetStatusLabel,
+                makeButton("Show") { [weak self] in
+                  self?.model.isSheetPresented = true
+                },
+              ]
+            ),
+          ]
+        ),
+      ],
+      to: view
+    )
 
     observe { [unowned self] in
-      if let url = model.url {
-        showAlertButton.title = "URL is: \(url)"
-      } else {
-        showAlertButton.title = "Alert is presented: \(model.alert != nil ? "✅" : "❌")"
-      }
-      showSheetButton.title = "Sheet is presented: \(model.sheet != nil ? "✅" : "❌")"
-      showSheetFromBooleanButton.title = "Sheet is presented from boolean: \(model.isSheetPresented ? "✅" : "❌")"
+      openPanelStatusLabel.stringValue = model.openPanelMessage != nil ? "Shown" : "Not shown"
+      chosenFileLabel.stringValue = model.url?.lastPathComponent ?? "None"
+      numberSheetStatusLabel.stringValue = model.sheet.map { "Showing \($0)" } ?? "Not shown"
+      sheetStatusLabel.stringValue = model.isSheetPresented ? "Shown" : "Not shown"
     }
 
-    modal(item: $model.alert, id: \.self) { [unowned self] message in
-//            let alert = NSAlert()
-//            alert.messageText = "This is an alert"
-//            alert.informativeText = message
-//            alert.addButton(withTitle: "OK")
-//            return alert
+    modal(item: $model.openPanelMessage, id: \.self) { [unowned self] message in
       let openPanel = NSOpenPanel(url: $model.url)
       openPanel.message = message
       return openPanel
     }
 
-    present(item: $model.sheet, id: \.self, style: .sheet) { count in
-      NSHostingController(
-        rootView: Form { Text(count.description) }.frame(width: 100, height: 100, alignment: .center)
-      )
+    present(item: $model.sheet, id: \.self, style: .sheet) { [unowned self] number in
+      MessageViewController(message: "The number is \(number).") { [weak self] in
+        self?.model.sheet = nil
+      }
     }
 
-    present(isPresented: $model.isSheetPresented, style: .sheet) {
-      NSHostingController(
-        rootView: Form { Text("Hello!") }.frame(width: 100, height: 100, alignment: .center)
-      )
+    present(isPresented: $model.isSheetPresented, style: .sheet) { [unowned self] in
+      MessageViewController(message: "Hello!") { [weak self] in
+        self?.model.isSheetPresented = false
+      }
     }
   }
 
   @Observable
   class Model {
-    var alert: String?
+    var openPanelMessage: String?
     var isSheetPresented = false
     var sheet: Int?
     var url: URL?

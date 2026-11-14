@@ -14,28 +14,30 @@ final class NetworkDetailViewController: XiblessViewController<NSView> {
   override func viewDidLoad() {
     super.viewDidLoad()
 
-//        navigationItem.title = model.network.name
-
-    let forgetButton = NSButton()
-    forgetButton.addAction { [weak self] _ in
-      guard let self else { return }
-      model.forgetNetworkButtonTapped()
+    let forgetButton = makeButton("Forget This Network…") { [weak self] in
+      self?.model.forgetNetworkButtonTapped()
     }
-
-    forgetButton.title = "Forget network"
-//        forgetButton.hasDestructiveAction = true
-    forgetButton.translatesAutoresizingMaskIntoConstraints = false
-    view.addSubview(forgetButton)
+    let doneButton = makeButton("Done") { [weak self] in
+      self?.dismiss(nil)
+    }
+    doneButton.keyEquivalent = "\r"
+    let isConnected = model.network.id == model.selectedNetworkID
+    let content = makeMessageView(
+      title: model.network.name,
+      message: """
+        \(isConnected ? "Your Mac is connected to this network." : "Your Mac is not connected to this network.") \
+        \(model.network.isSecured ? "It is secured with a password." : "It is an open network.")
+        """,
+      buttons: [forgetButton, doneButton]
+    )
+    content.translatesAutoresizingMaskIntoConstraints = false
+    view.addSubview(content)
     NSLayoutConstraint.activate([
-      forgetButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-      forgetButton.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+      content.topAnchor.constraint(equalTo: view.topAnchor),
+      content.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+      content.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+      content.bottomAnchor.constraint(equalTo: view.bottomAnchor),
     ])
-
-    observe { [weak self] in
-      guard let self else { return }
-
-//            forgetButton.isHidden = model.network.id != model.selectedNetworkID
-    }
 
     modal(isPresented: $model.forgetAlertIsPresented) { [unowned self] in
       let alert = NSAlert()
@@ -52,6 +54,11 @@ final class NetworkDetailViewController: XiblessViewController<NSView> {
       }
       return alert
     }
+  }
+
+  /// Escape in the sheet, which AppKit asks the sheet's delegate for: this view controller.
+  @objc func cancel(_ sender: Any?) {
+    dismiss(nil)
   }
 }
 

@@ -95,75 +95,113 @@ class TableSelectionViewController: XiblessViewController<NSView>, AppKitCaseStu
     collectionDataSource.apply(colorSnapshot, animatingDifferences: false)
     self.collectionDataSource = collectionDataSource
     collectionView.bind(selection: $model.selectedColors, dataSource: collectionDataSource)
+    collectionView.backgroundColors = [.clear]
     let collectionScrollView = NSScrollView()
     collectionScrollView.documentView = collectionView
-    collectionScrollView.borderType = .bezelBorder
-    collectionScrollView.translatesAutoresizingMaskIntoConstraints = false
-    NSLayoutConstraint.activate([
-      collectionScrollView.widthAnchor.constraint(equalToConstant: 260),
-      collectionScrollView.heightAnchor.constraint(equalToConstant: 80),
-    ])
+    collectionScrollView.drawsBackground = false
+    collectionScrollView.heightAnchor.constraint(equalToConstant: 64).isActive = true
 
-    let statusLabel = NSTextField(wrappingLabelWithString: "")
-    statusLabel.textColor = .secondaryLabelColor
+    let planetLabel = makeValueLabel()
+    let pantryItemLabel = makeValueLabel()
+    let expandedGroupsLabel = makeValueLabel()
+    let colorsLabel = makeValueLabel()
 
-    addColumn(
-      of: [
-        makeSectionLabel("Table"),
-        Self.scrollView(containing: tableView),
-        makeButton("Select Mars") { [weak self] in
-          self?.model.selectedPlanet = "Mars"
-        },
-        makeButton("Clear the table's selection") { [weak self] in
-          self?.model.selectedPlanet = nil
-        },
-        makeSectionLabel("Outline"),
-        Self.scrollView(containing: outlineView),
-        makeButton("Select Cherries") { [weak self] in
-          // NB: Expanded too, since a row only exists while its group is expanded.
-          self?.model.expandedPantryGroups.insert("Fruit")
-          self?.model.selectedPantryItem = "Cherries"
-        },
-        makeButton("Expand everything") { [weak self] in
-          self?.model.expandedPantryGroups = Set(PantryOutlineDataSource.groupNames)
-        },
-        makeButton("Collapse everything") { [weak self] in
-          self?.model.expandedPantryGroups = []
-        },
-        makeSectionLabel("Collection"),
-        collectionScrollView,
-        makeButton("Select the warm colors") { [weak self] in
-          self?.model.selectedColors = ["Red", "Orange", "Yellow"]
-        },
-        makeButton("Clear the colors' selection") { [weak self] in
-          self?.model.selectedColors = []
-        },
-        statusLabel,
+    addForm(
+      [
+        FormSection(
+          "Table",
+          footer: "The table binds its selected row to the name of the planet in it.",
+          rows: [
+            FormRow(content: Self.scrollView(containing: tableView, height: 150), insets: NSEdgeInsets(top: 6, left: 0, bottom: 6, right: 0)),
+            FormRow(
+              "Selection",
+              accessories: [
+                planetLabel,
+                makeButton("Select Mars") { [weak self] in
+                  self?.model.selectedPlanet = "Mars"
+                },
+                makeButton("Clear") { [weak self] in
+                  self?.model.selectedPlanet = nil
+                },
+              ]
+            ),
+          ]
+        ),
+        FormSection(
+          "Outline",
+          footer: "The outline binds its selected row to the name of the item in it, and the groups it has expanded to a set of names.",
+          rows: [
+            FormRow(content: Self.scrollView(containing: outlineView, height: 170), insets: NSEdgeInsets(top: 6, left: 0, bottom: 6, right: 0)),
+            FormRow(
+              "Selection",
+              accessories: [
+                pantryItemLabel,
+                makeButton("Select Cherries") { [weak self] in
+                  // NB: Expanded too, since a row only exists while its group is expanded.
+                  self?.model.expandedPantryGroups.insert("Fruit")
+                  self?.model.selectedPantryItem = "Cherries"
+                },
+              ]
+            ),
+            FormRow(
+              "Expanded groups",
+              accessories: [
+                expandedGroupsLabel,
+                makeButton("Expand All") { [weak self] in
+                  self?.model.expandedPantryGroups = Set(PantryOutlineDataSource.groupNames)
+                },
+                makeButton("Collapse All") { [weak self] in
+                  self?.model.expandedPantryGroups = []
+                },
+              ]
+            ),
+          ]
+        ),
+        FormSection(
+          "Collection",
+          footer: "Click, ⌘-click, drag across the colors or choose Select All, and the model follows.",
+          rows: [
+            FormRow(content: collectionScrollView),
+            FormRow(
+              "Selection",
+              accessories: [
+                colorsLabel,
+                makeButton("Select the warm colors") { [weak self] in
+                  self?.model.selectedColors = ["Red", "Orange", "Yellow"]
+                },
+                makeButton("Clear") { [weak self] in
+                  self?.model.selectedColors = []
+                },
+              ]
+            ),
+          ]
+        ),
       ],
       to: view
     )
 
     observe { [unowned self] in
-      statusLabel.stringValue = """
-        Table selection: \(model.selectedPlanet ?? "none")
-        Outline selection: \(model.selectedPantryItem ?? "none")
-        Expanded groups: \(model.expandedPantryGroups.isEmpty ? "none" : model.expandedPantryGroups.sorted().joined(separator: ", "))
-        Selected colors: \(model.selectedColors.isEmpty ? "none" : ColorItem.colorNames.filter(model.selectedColors.contains).joined(separator: ", "))
-        """
+      planetLabel.stringValue = model.selectedPlanet ?? "None"
+      pantryItemLabel.stringValue = model.selectedPantryItem ?? "None"
+      expandedGroupsLabel.stringValue =
+        model.expandedPantryGroups.isEmpty ? "None" : model.expandedPantryGroups.sorted().joined(separator: ", ")
+      colorsLabel.stringValue =
+        model.selectedColors.isEmpty
+        ? "None" : ColorItem.colorNames.filter(model.selectedColors.contains).joined(separator: ", ")
     }
   }
 
-  private static func scrollView(containing tableView: NSTableView) -> NSScrollView {
+  /// A scroll view, as tall as `height`, showing `tableView` without a header.
+  private static func scrollView(containing tableView: NSTableView, height: CGFloat) -> NSScrollView {
     tableView.headerView = nil
+    tableView.style = .inset
+    tableView.backgroundColor = .clear
     let scrollView = NSScrollView()
     scrollView.documentView = tableView
     scrollView.hasVerticalScroller = true
-    scrollView.borderType = .bezelBorder
-    scrollView.translatesAutoresizingMaskIntoConstraints = false
-    NSLayoutConstraint.activate([
-      scrollView.widthAnchor.constraint(equalToConstant: 260),
-      scrollView.heightAnchor.constraint(equalToConstant: 120),
-    ])
+    scrollView.autohidesScrollers = true
+    scrollView.drawsBackground = false
+    scrollView.heightAnchor.constraint(equalToConstant: height).isActive = true
     return scrollView
   }
 

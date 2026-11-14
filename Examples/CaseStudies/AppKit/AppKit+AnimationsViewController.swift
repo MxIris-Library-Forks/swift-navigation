@@ -14,45 +14,50 @@ class AnimationsViewController: XiblessViewController<NSView>, AppKitCaseStudy {
   and cycle through its colors with the button.
   """
   @UIBindable var model = Model()
-  private let canvasView = NSView()
 
   override func viewDidLoad() {
     super.viewDidLoad()
 
-    canvasView.wantsLayer = true
-    canvasView.layer?.backgroundColor = NSColor.quaternaryLabelColor.cgColor
-    canvasView.layer?.cornerRadius = 8
-    canvasView.translatesAutoresizingMaskIntoConstraints = false
+    let canvasView = CanvasView()
+    canvasView.clipsToBounds = true
+    canvasView.heightAnchor.constraint(equalToConstant: 320).isActive = true
+    canvasView.onPointer = { [weak self] location in
+      withAppKitAnimation(Self.springAnimation) {
+        self?.model.position = location
+      }
+    }
     let circleView = NSView()
     circleView.wantsLayer = true
     canvasView.addSubview(circleView)
 
-    let isScaledLabel = NSTextField(labelWithString: "Is scaled?")
-    let isScaledSwitch = NSSwitch(isOn: $model.isScaled.animation(Self.springAnimation))
-    let scaleRow = NSStackView(views: [isScaledLabel, isScaledSwitch])
-    scaleRow.orientation = .horizontal
-    scaleRow.spacing = 12
-    let cycleColorsButton = makeButton("Cycle colors") { [weak self] in
-      guard let self else { return }
-      Task { await self.model.cycleColors() }
-    }
-    let controls = NSStackView(views: [scaleRow, cycleColorsButton])
-    controls.orientation = .vertical
-    controls.alignment = .centerX
-    controls.spacing = 12
-    controls.translatesAutoresizingMaskIntoConstraints = false
-
-    view.addSubview(controls)
-    view.addSubview(canvasView)
-    NSLayoutConstraint.activate([
-      controls.topAnchor.constraint(equalTo: view.topAnchor, constant: 20),
-      controls.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-      canvasView.topAnchor.constraint(equalTo: controls.bottomAnchor, constant: 20),
-      canvasView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-      canvasView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-      canvasView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -20),
-      canvasView.heightAnchor.constraint(greaterThanOrEqualToConstant: 360),
-    ])
+    addForm(
+      [
+        FormSection(
+          "Circle",
+          rows: [
+            FormRow(
+              "Scaled up",
+              accessories: [NSSwitch(isOn: $model.isScaled.animation(Self.springAnimation))]
+            ),
+            FormRow(
+              "Color",
+              accessories: [
+                makeButton("Cycle colors") { [weak self] in
+                  guard let self else { return }
+                  Task { await self.model.cycleColors() }
+                },
+              ]
+            ),
+          ]
+        ),
+        FormSection(
+          "Canvas",
+          footer: "Click or drag in the canvas to move the circle with a spring.",
+          rows: [FormRow(content: canvasView, insets: NSEdgeInsets())]
+        ),
+      ],
+      to: view
+    )
 
     observe { [unowned self] in
       // NB: 'NSView' has no 'transform' to scale with, so the circle grows by its frame instead.
@@ -68,22 +73,6 @@ class AnimationsViewController: XiblessViewController<NSView>, AppKitCaseStudy {
     }
   }
 
-  override func mouseDown(with event: NSEvent) {
-    moveCircle(to: event)
-  }
-
-  override func mouseDragged(with event: NSEvent) {
-    moveCircle(to: event)
-  }
-
-  private func moveCircle(to event: NSEvent) {
-    let location = canvasView.convert(event.locationInWindow, from: nil)
-    guard canvasView.bounds.contains(location) else { return }
-    withAppKitAnimation(Self.springAnimation) {
-      model.position = location
-    }
-  }
-
   /// A spring where the system has one, which is macOS 15 and later.
   private static var springAnimation: AppKitAnimation {
     if #available(macOS 15, *) {
@@ -96,17 +85,36 @@ class AnimationsViewController: XiblessViewController<NSView>, AppKitCaseStudy {
   @MainActor
   @Observable
   class Model {
-    var position = CGPoint(x: 150, y: 180)
+    var position = CGPoint(x: 150, y: 160)
     var isScaled = false
-    var color = NSColor.black
+    var color = NSColor.systemBlue
 
     func cycleColors() async {
-      let colors: [NSColor] = [.systemRed, .systemBlue, .systemTeal, .systemGreen, .systemPink, .systemPurple, .black]
+      let colors: [NSColor] = [.systemRed, .systemOrange, .systemYellow, .systemGreen, .systemTeal, .systemPurple, .systemBlue]
       for color in colors {
         withAppKitAnimation { self.color = color }
         try? await Task.sleep(for: .seconds(1))
       }
     }
+  }
+}
+
+/// The area the circle moves in. It reports where it is clicked and dragged.
+private final class CanvasView: NSView {
+  var onPointer: (@MainActor (CGPoint) -> Void)?
+
+  override func mouseDown(with event: NSEvent) {
+    report(event)
+  }
+
+  override func mouseDragged(with event: NSEvent) {
+    report(event)
+  }
+
+  private func report(_ event: NSEvent) {
+    let location = convert(event.locationInWindow, from: nil)
+    guard bounds.contains(location) else { return }
+    onPointer?(location)
   }
 }
 

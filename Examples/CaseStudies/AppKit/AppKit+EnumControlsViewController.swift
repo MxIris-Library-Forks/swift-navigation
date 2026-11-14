@@ -29,66 +29,47 @@ class EnumControlsViewController: XiblessViewController<NSView>, AppKitCaseStudy
   override func viewDidLoad() {
     super.viewDidLoad()
 
-    let quantityLabel = NSTextField(labelWithString: "")
-    let quantityStepper = NSStepper()
-    quantityStepper.maxValue = .infinity
-    let quantityStack = NSStackView(views: [
-      quantityLabel,
-      quantityStepper,
-    ])
-    let outOfStockButton = NSButton()
-    outOfStockButton.addAction { [weak self] _ in
+    let statusLabel = makeValueLabel()
+    let outOfStockButton = makeButton("Out of stock") { [weak self] in
       self?.status = .outOfStock(isOnBackOrder: false)
     }
-    outOfStockButton.title = "Out of stock"
-    let inStockStack = NSStackView(views: [
-      quantityStack,
-      outOfStockButton,
-    ])
-    inStockStack.orientation = .vertical
-
-    let isOnBackOrderLabel = NSTextField(labelWithString: "Is on back order?")
-    let isOnBackOrderSwitch = NSSwitch()
-    let isOnBackOrderStack = NSStackView(views: [
-      isOnBackOrderLabel,
-      isOnBackOrderSwitch,
-    ])
-    let backInStockButton = NSButton()
-    backInStockButton.addAction { [weak self] _ in
+    let backInStockButton = makeButton("Back in stock!") { [weak self] in
       self?.status = .inStock(quantity: 100)
     }
+    let quantityLabel = makeValueLabel()
+    let quantityStepper = NSStepper()
+    quantityStepper.maxValue = .infinity
+    let quantityRow = FormRow("Quantity", accessories: [quantityLabel, quantityStepper])
+    let isOnBackOrderSwitch = NSSwitch()
+    let isOnBackOrderRow = FormRow("On back order", accessories: [isOnBackOrderSwitch])
 
-    backInStockButton.title = "Back in stock!"
-    let outOfStockStack = NSStackView(views: [
-      isOnBackOrderStack,
-      backInStockButton,
-    ])
-    outOfStockStack.orientation = .vertical
-
-    let stack = NSStackView(views: [
-      inStockStack,
-      outOfStockStack,
-    ])
-    stack.orientation = .vertical
-    stack.spacing = 12
-    stack.translatesAutoresizingMaskIntoConstraints = false
-
-    view.addSubview(stack)
-
-    NSLayoutConstraint.activate([
-      stack.centerYAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerYAnchor),
-      stack.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-      stack.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-    ])
+    addForm(
+      [
+        FormSection(
+          "Item",
+          footer: "The stepper and the switch bind into the cases of a single status enum.",
+          rows: [
+            FormRow("Status", accessories: [statusLabel, outOfStockButton, backInStockButton]),
+            quantityRow,
+            isOnBackOrderRow,
+          ]
+        ),
+      ],
+      to: view
+    )
 
     observe { [unowned self] in
-      inStockStack.isHidden = !status.is(\.inStock)
-      outOfStockStack.isHidden = !status.is(\.outOfStock)
+      let isInStock = status.is(\.inStock)
+      statusLabel.stringValue = isInStock ? "In stock" : "Out of stock"
+      outOfStockButton.isHidden = !isInStock
+      backInStockButton.isHidden = isInStock
+      quantityRow.isHidden = !isInStock
+      isOnBackOrderRow.isHidden = isInStock
 
       switch status {
       case .inStock:
         if let quantity = $status.inStock {
-          quantityLabel.stringValue = "Quantity: \(quantity.wrappedValue)"
+          quantityLabel.stringValue = quantity.wrappedValue.description
           quantityStepper.bind(value: quantity.asDouble)
         }
 

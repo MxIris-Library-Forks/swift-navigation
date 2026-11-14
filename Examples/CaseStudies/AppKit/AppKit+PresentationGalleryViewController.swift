@@ -22,48 +22,87 @@ class PresentationGalleryViewController: XiblessViewController<NSView>, AppKitCa
   override func viewDidLoad() {
     super.viewDidLoad()
 
-    let modalWindowButton = makeButton("Run a window modally") { [weak self] in
-      self?.model.isModalWindowPresented = true
-    }
-    let modalAlertButton = makeButton("Run an alert modally") { [weak self] in
-      self?.model.modalAlert = .discardChanges
-    }
-    let modalSessionButton = makeButton("Show a window in a modal session") { [weak self] in
-      self?.model.isModalSessionPresented = true
-    }
-    let popoverButton = makeButton("Show a popover from this button") { [weak self] in
+    let popoverButton = makeButton("Show") { [weak self] in
       self?.model.isPopoverPresented = true
     }
-    let viewControllerSheetButton = makeButton("Present as a sheet") { [weak self] in
-      self?.model.isViewControllerSheetPresented = true
-    }
-    let viewControllerWindowButton = makeButton("Present in a modal window") { [weak self] in
-      self?.model.isViewControllerWindowPresented = true
-    }
-    let viewControllerPopoverButton = makeButton("Present in a popover") { [weak self] in
+    let viewControllerPopoverButton = makeButton("Present") { [weak self] in
       self?.model.isViewControllerPopoverPresented = true
     }
-    let documentWindowButton = makeButton("Open a document window") { [weak self] in
-      self?.openDocumentWindow()
-    }
-    let logLabel = NSTextField(wrappingLabelWithString: "")
+    let logLabel = makeWrappingLabel()
     logLabel.textColor = .secondaryLabelColor
 
-    addColumn(
-      of: [
-        makeSectionLabel("Windows, alerts and panels"),
-        modalWindowButton,
-        modalAlertButton,
-        modalSessionButton,
-        documentWindowButton,
-        makeSectionLabel("Popovers"),
-        popoverButton,
-        makeSectionLabel("View controllers"),
-        viewControllerSheetButton,
-        viewControllerWindowButton,
-        viewControllerPopoverButton,
-        makeSectionLabel("onDismiss log"),
-        logLabel,
+    addForm(
+      [
+        FormSection(
+          "Windows, alerts and panels",
+          rows: [
+            FormRow(
+              "Modal window",
+              accessories: [
+                makeButton("Run") { [weak self] in
+                  self?.model.isModalWindowPresented = true
+                },
+              ]
+            ),
+            FormRow(
+              "Modal alert",
+              accessories: [
+                makeButton("Run") { [weak self] in
+                  self?.model.modalAlert = .discardChanges
+                },
+              ]
+            ),
+            FormRow(
+              "Modal session",
+              subtitle: "Takes the app's input without blocking",
+              accessories: [
+                makeButton("Show") { [weak self] in
+                  self?.model.isModalSessionPresented = true
+                },
+              ]
+            ),
+            FormRow(
+              "Document window",
+              subtitle: "Sheets and a toolbar popover attach to it",
+              accessories: [
+                makeButton("Open") { [weak self] in
+                  self?.openDocumentWindow()
+                },
+              ]
+            ),
+          ]
+        ),
+        FormSection(
+          "Popovers",
+          rows: [FormRow("From a button", accessories: [popoverButton])]
+        ),
+        FormSection(
+          "View controllers",
+          rows: [
+            FormRow(
+              "As a sheet",
+              accessories: [
+                makeButton("Present") { [weak self] in
+                  self?.model.isViewControllerSheetPresented = true
+                },
+              ]
+            ),
+            FormRow(
+              "In a modal window",
+              accessories: [
+                makeButton("Present") { [weak self] in
+                  self?.model.isViewControllerWindowPresented = true
+                },
+              ]
+            ),
+            FormRow("In a popover", accessories: [viewControllerPopoverButton]),
+          ]
+        ),
+        FormSection(
+          "onDismiss log",
+          footer: "'onDismiss' runs once the content has left the screen, however it was dismissed.",
+          rows: [FormRow(content: logLabel)]
+        ),
       ],
       to: view
     )

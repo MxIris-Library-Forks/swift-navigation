@@ -123,6 +123,39 @@
       XCTAssertTrue(waitUntil { host.window.attachedSheet == nil }, "The sheet was not dismissed")
     }
 
+    /// AppKit takes a view controller off screen before `dismiss(_:)` returns, so the binding's
+    /// own dismissal ends while its change is being applied, with nothing left for a later turn
+    /// of the run loop.
+    @MainActor
+    func testSettingTheBindingToFalseEndsTheSheetWhileTheChangeIsApplied() {
+      let host = makeHost()
+      @UIBinding var isPresented = false
+      let dismissCount = Recorded(0)
+      host.viewController.present(
+        isPresented: $isPresented, style: .sheet, onDismiss: { dismissCount.value += 1 }
+      ) {
+        self.makeViewController()
+      }
+      isPresented = true
+      XCTAssertTrue(waitUntil { host.window.attachedSheet != nil }, "The sheet never appeared")
+
+      let dismissCountOnceApplied = Recorded<Int?>(nil)
+      var transaction = UITransaction()
+      transaction[ChangeAppliedKey.self] = {
+        dismissCountOnceApplied.value = dismissCount.value
+      }
+      withUITransaction(transaction) {
+        isPresented = false
+      }
+
+      XCTAssertTrue(
+        waitUntil { dismissCountOnceApplied.value != nil }, "The change was never applied"
+      )
+      XCTAssertEqual(
+        dismissCountOnceApplied.value, 1, "'onDismiss' waited for a later turn of the run loop"
+      )
+    }
+
     // NB: 'sheet(isSheeted:)' once dismissed a view controller sheet the moment it appeared, while
     //     its own implementation of sheets still existed next to this one.
     @MainActor
@@ -386,6 +419,23 @@
         waitUntil { presentedChildren.count == 2 },
         "Setting the binding to 'true' again did not present the child again"
       )
+    }
+  }
+
+  /// Runs its value once a change made in its transaction has been applied: `observe` wraps the
+  /// re-run a change causes in the `perform` of every custom key the change's transaction carries.
+  private enum ChangeAppliedKey: _UICustomTransactionKey {
+    static let defaultValue: (@MainActor @Sendable () -> Void)? = nil
+
+    static func perform(
+      value: (@MainActor @Sendable () -> Void)?,
+      operation: @Sendable () -> Void
+    ) {
+      operation()
+      guard let value else { return }
+      MainActor.assumeIsolated {
+        value()
+      }
     }
   }
 #endif

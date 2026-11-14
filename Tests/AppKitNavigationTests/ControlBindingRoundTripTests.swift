@@ -122,17 +122,6 @@
       #expect(segment == .first)
     }
 
-    /// `NSSavePanel.bind(url:)` and `NSOpenPanel.bind(urls:)` hook the private setters through
-    /// which a panel records what the user confirmed. Should AppKit drop or rename them, the
-    /// bindings would stop being written without any error; this test is what notices.
-    @Test(
-      "the private setters the panel bindings hook still exist",
-      arguments: ["setFinalURL:", "setFinalURLs:"]
-    )
-    func panelSettersStillExist(_ selectorName: String) {
-      #expect(NSSavePanel.instancesRespond(to: NSSelectorFromString(selectorName)))
-    }
-
     private enum Segment: Int {
       case first
       case second

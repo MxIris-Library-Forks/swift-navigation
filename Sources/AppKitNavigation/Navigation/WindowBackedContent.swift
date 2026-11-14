@@ -43,7 +43,10 @@
       // NB: A save or open panel has to go through its own method. Attached like a plain window,
       //     its Cancel button cannot end the sheet.
       if let savePanel = self as? NSSavePanel {
-        savePanel.beginSheetModal(for: parentWindow) { _ in
+        savePanel.beginSheetModal(for: parentWindow) { response in
+          if response == .OK {
+            savePanel.appKitNavigationWriteConfirmedChoice()
+          }
           completionHandler()
         }
       } else {
@@ -56,7 +59,9 @@
     @_documentation(visibility: private)
     public func _appKitNavigationRunModal() {
       if let savePanel = self as? NSSavePanel {
-        _ = savePanel.runModal()
+        if savePanel.runModal() == .OK {
+          savePanel.appKitNavigationWriteConfirmedChoice()
+        }
       } else {
         _ = NSApplication.shared.runModal(for: self)
       }

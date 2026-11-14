@@ -6,11 +6,6 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface NSSavePanel (AppKitNavigation)
-@property (nullable) void (^ AppKitNavigation_onFinalURL)(NSURL *_Nullable);
-@property (nullable) void (^ AppKitNavigation_onFinalURLs)(NSArray<NSURL *> *);
-@end
-
 // MARK: - Multiple target-action pairs
 
 // NB: AppKit has stored several target-action pairs per control since macOS 11, but only published

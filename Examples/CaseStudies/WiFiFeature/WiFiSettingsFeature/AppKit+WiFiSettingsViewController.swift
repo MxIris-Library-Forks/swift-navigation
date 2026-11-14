@@ -174,13 +174,14 @@ class WiFiSettingsDestinationHeaderView: NSView, NSCollectionViewElement {
         section.translatesAutoresizingMaskIntoConstraints = false
         addSubview(section)
         // NB: The same centered column, no wider than 640 points, that the sections below use.
-        let fillsTheWidth = section.widthAnchor.constraint(equalTo: widthAnchor, constant: -48)
-        fillsTheWidth.priority = .defaultHigh
+        let preferredWidth = section.widthAnchor.constraint(equalToConstant: 640)
+        preferredWidth.priority = .preferredFormWidth
         NSLayoutConstraint.activate([
             section.topAnchor.constraint(equalTo: topAnchor, constant: 20),
             section.centerXAnchor.constraint(equalTo: centerXAnchor),
             section.widthAnchor.constraint(lessThanOrEqualToConstant: 640),
-            fillsTheWidth,
+            section.widthAnchor.constraint(lessThanOrEqualTo: widthAnchor, constant: -48),
+            preferredWidth,
         ])
     }
 

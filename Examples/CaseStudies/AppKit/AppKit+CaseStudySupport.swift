@@ -23,6 +23,29 @@ class XiblessViewController<View: NSView>: NSViewController {
   }
 }
 
+/// A view with the window's own background behind its subviews: the view of a screen on a
+/// navigation stack.
+///
+/// A pushed screen slides in over the one under it, so a screen that draws no background of its own
+/// lets the other one show through while the transition runs.
+final class WindowBackgroundView: NSView {
+  override init(frame frameRect: NSRect) {
+    super.init(frame: frameRect)
+    // NB: The window background material rather than `windowBackgroundColor`, which is a shade
+    //     darker than a window whose background takes on the desktop picture's tint.
+    let background = NSVisualEffectView()
+    background.material = .windowBackground
+    background.blendingMode = .behindWindow
+    background.state = .followsWindowActiveState
+    pin(background, insets: NSEdgeInsets())
+  }
+
+  @available(*, unavailable)
+  required init?(coder: NSCoder) {
+    fatalError("init(coder:) has not been implemented")
+  }
+}
+
 // MARK: - Controls
 
 /// A push button that runs `action` when clicked.
@@ -112,8 +135,8 @@ func addForm(_ sections: [FormSection], to view: NSView) {
   view.addSubview(scrollView)
 
   let clipView = scrollView.contentView
-  let fillsTheWidth = column.widthAnchor.constraint(equalTo: documentView.widthAnchor, constant: -48)
-  fillsTheWidth.priority = .defaultHigh
+  let preferredWidth = column.widthAnchor.constraint(equalToConstant: 640)
+  preferredWidth.priority = .preferredFormWidth
   NSLayoutConstraint.activate([
     scrollView.topAnchor.constraint(equalTo: view.topAnchor),
     scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -126,8 +149,17 @@ func addForm(_ sections: [FormSection], to view: NSView) {
     column.bottomAnchor.constraint(equalTo: documentView.bottomAnchor, constant: -24),
     column.centerXAnchor.constraint(equalTo: documentView.centerXAnchor),
     column.widthAnchor.constraint(lessThanOrEqualToConstant: 640),
-    fillsTheWidth,
+    column.widthAnchor.constraint(lessThanOrEqualTo: documentView.widthAnchor, constant: -48),
+    preferredWidth,
   ])
+}
+
+extension NSLayoutConstraint.Priority {
+  /// How strongly a form prefers its column 640 points wide.
+  ///
+  /// Weaker than the 500 that SwiftUI holds the size of a view controller it hosts with: a stronger
+  /// preference wins over that size and narrows the whole page to the column's width instead.
+  static let preferredFormWidth = Self(490)
 }
 
 /// A label whose text wraps to the width it is laid out at: a note, a log or a dump of a model.

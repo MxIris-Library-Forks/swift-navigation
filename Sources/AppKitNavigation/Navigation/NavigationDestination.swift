@@ -2,7 +2,6 @@
   public import AppKit
   import AppKitPlus
   public import SwiftNavigation
-  import AppKitNavigationShim
 
   extension NSViewController {
     /// Pushes a view controller onto the enclosing navigation controller while a binding to a
@@ -12,7 +11,8 @@
     /// `NSNavigationController`. Setting the binding to `false` pops the view controller, along
     /// with anything pushed above it. When the user goes back past it — with the back button, ⌘↑
     /// or a swipe — or it dismisses itself with `traitCollection.dismiss()`, the binding is set to
-    /// `false`. The view controller is pushed once this view controller's view has appeared.
+    /// `false`. The view controller is pushed once the navigation controller is on screen, onto
+    /// the top of its stack.
     ///
     /// Available with the `AppKitPlus` package trait.
     ///
@@ -166,20 +166,19 @@
     weak var presenter: NSViewController?
 
     func whenReady(_ body: @escaping @MainActor () -> Void) -> @MainActor () -> Void {
-      guard let presenter, !presenter._AppKitNavigation_hasViewAppeared else {
-        body()
-        return {}
-      }
-      let wait = PushWait()
-      presenter._AppKitNavigation_onViewAppear.append {
-        MainActor._assumeIsolated {
-          guard !wait.isCancelled else { return }
-          body()
-        }
-      }
-      return {
-        wait.isCancelled = true
-      }
+      // NB: What has to be on screen is the stack the push lands on, not the presenter: one that
+      //     something else has been pushed over still pushes onto the top. A presenter in no
+      //     navigation controller waits for its own view, and 'begin' then reports the misuse. One
+      //     that has gone away counts as ready, so that 'begin' finds out.
+      RunLoopWait.until(
+        { [weak presenter] in
+          guard let presenter else { return true }
+          let navigationController =
+            presenter.navigationController ?? presenter as? NSNavigationController
+          return (navigationController ?? presenter).appKitNavigationIsViewOnScreen
+        },
+        then: body
+      )
     }
 
     func begin(
@@ -247,12 +246,6 @@
     init(navigationController: NSNavigationController) {
       self.navigationController = navigationController
     }
-  }
-
-  /// A wait that can be called off after it has been scheduled.
-  @MainActor
-  private final class PushWait {
-    var isCancelled = false
   }
 
   extension NSViewController {

@@ -24,7 +24,7 @@
       // NB: The library is linked into the test binary. Should that change, the scan would find
       //     nothing and pass for the wrong reason.
       try #require(
-        addedMethods.contains("-[NSViewController _AppKitNavigation_hasViewAppeared]"),
+        addedMethods.contains("-[NSButton appKitNavigationIsOn]"),
         "The scan must find the library's own methods"
       )
 
@@ -37,12 +37,8 @@
     }
 
     /// The methods the library replaces on purpose: the shim exchanges its own implementations in
-    /// for these, to learn when a view controller appears, disappears or is dismissed, and what
-    /// the user confirmed in a save panel.
+    /// for these, to learn what the user confirmed in a save panel.
     private static let deliberatelyReplacedMethods: Set<String> = [
-      "-[NSViewController viewDidAppear]",
-      "-[NSViewController viewDidDisappear]",
-      "-[NSViewController dismissViewController:]",
       "-[NSSavePanel setFinalURL:]",
       "-[NSSavePanel setFinalURLs:]",
     ]

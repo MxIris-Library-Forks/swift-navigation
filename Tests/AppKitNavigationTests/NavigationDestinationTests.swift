@@ -61,6 +61,30 @@
       XCTAssertEqual(dismissCount.value, 1)
     }
 
+    /// A push lands on top of the stack, wherever in it the view controller that asks for it is.
+    @MainActor
+    func testAViewControllerThatAnotherDestinationCoversStillPushes() {
+      let (navigationController, root) = makeNavigationController()
+      @UIBinding var isShowingSettings = false
+      @UIBinding var detail: Detail? = nil
+      root.navigationDestination(isPresented: $isShowingSettings) {
+        DetailViewController(name: "Settings")
+      }
+      root.navigationDestination(item: $detail) { detail in
+        DetailViewController(name: detail.name)
+      }
+      withoutAnimation { isShowingSettings = true }
+      XCTAssertTrue(waitUntil { topName(of: navigationController) == "Settings" })
+
+      withoutAnimation { detail = Detail(name: "Mars") }
+
+      XCTAssertTrue(
+        waitUntil { topName(of: navigationController) == "Mars" },
+        "The covered view controller's destination was not pushed"
+      )
+      XCTAssertEqual(navigationController.viewControllers.count, 3)
+    }
+
     @MainActor
     func testABooleanBindingPushesAndPops() {
       let (navigationController, root) = makeNavigationController()

@@ -332,24 +332,11 @@
       // NB: AppKit tells no one but the presenter that it dismissed a view controller, and the user
       //     can dismiss one without going through the binding: with a Cancel button wired to
       //     'dismissController:', or by closing a transient popover. So the view controller is
-      //     watched instead. Once AppKit has listed it among the presenter's presented view
-      //     controllers, it counts as ended when it has left that list and its window is off
-      //     screen. The watch starts before presenting, so that it also runs inside any modal loop
-      //     presenting starts.
-      let record = PresentationRecord(didEnd: didEnd)
+      //     watched instead, as the record describes. The watch starts before presenting, so that
+      //     it also runs inside any modal loop presenting starts.
+      let record = PresentationRecord(presenter: presenter, child: child, didEnd: didEnd)
       child.appKitNavigationPresentationRecord = record
-      _ = RunLoopWait.until(
-        { [weak presenter, weak child] in
-          guard !record.hasEnded, let child else { return true }
-          let isPresented = presenter?.presentedViewControllers?.contains(child) == true
-          if isPresented {
-            record.hasBeenPresented = true
-          }
-          return record.hasBeenPresented && !isPresented
-            && (!child.isViewLoaded || child.view.window?.isVisible != true)
-        },
-        then: { record.end() }
-      )
+      _ = RunLoopWait.until({ record.hasEnded || record.isOver() }, then: { record.end() })
       switch transition {
       case let .style(style):
         presenter.present(child, as: style)
@@ -358,11 +345,9 @@
           present(child, transaction)
         }
       }
-      // NB: Noted right away as well, since the watch only looks when the run loop is about to
-      //     wait: the user can dismiss the view controller before that.
-      if presenter.presentedViewControllers?.contains(child) == true {
-        record.hasBeenPresented = true
-      }
+      // NB: Noted right away as well, since the watch only looks as a run loop turn ends: the
+      //     user can dismiss the view controller before that.
+      record.noteWhetherPresented()
     }
 
     func end(_ child: NSViewController, transaction: UITransaction) {
@@ -372,39 +357,69 @@
         //     safe to read while the presenter is being deallocated.
         if let presenter, presenter.presentedViewControllers?.contains(child) == true {
           presenter.dismiss(child)
-          return
         }
       case let .custom(_, dismiss):
         withUITransaction(transaction) {
           dismiss(child, transaction)
         }
-        if presenter?.presentedViewControllers?.contains(child) == true {
-          return
-        }
       }
-      // NB: One that went through AppKit's presentation ends once the watch sees it off screen.
-      //     Any other one, and one whose presenter has gone away, ends now.
+      // NB: AppKit has taken a view controller off screen by the time 'dismiss(_:)' returns, so
+      //     the end is reported now rather than as the run loop turn ends, the way it was while
+      //     the shim reported it from 'viewDidDisappear'. One still on its way out, through an
+      //     animator of the caller's own, is left to the watch. One that never went through
+      //     AppKit's presentation, or whose presenter has gone away, has ended as far as anyone
+      //     can tell.
       guard let record = child.appKitNavigationPresentationRecord else { return }
-      if record.hasBeenPresented, presenter != nil {
-        return
+      let isOver = record.isOver()
+      if isOver || !record.hasBeenPresented || presenter == nil {
+        record.end()
       }
-      record.end()
     }
   }
 
-  /// What a view controller presented by ``ViewControllerPresentationStyle`` reports its end to.
+  /// What a view controller presented by ``ViewControllerPresentationStyle`` reports its end to,
+  /// and how to tell that it has ended: once AppKit has listed it among its presenter's presented
+  /// view controllers, it has ended when it has left that list and its window is off screen.
   @MainActor
   private final class PresentationRecord {
+    private weak var presenter: NSViewController?
+    private weak var child: NSViewController?
     /// Whether AppKit has listed the view controller among its presenter's presented ones.
-    var hasBeenPresented = false
+    private(set) var hasBeenPresented = false
     private var didEnd: (@MainActor () -> Void)?
 
-    init(didEnd: @escaping @MainActor () -> Void) {
+    init(
+      presenter: NSViewController,
+      child: NSViewController,
+      didEnd: @escaping @MainActor () -> Void
+    ) {
+      self.presenter = presenter
+      self.child = child
       self.didEnd = didEnd
     }
 
     var hasEnded: Bool {
       didEnd == nil
+    }
+
+    /// Notes whether AppKit lists the view controller among its presenter's presented ones now,
+    /// and returns whether it does.
+    @discardableResult
+    func noteWhetherPresented() -> Bool {
+      guard let child, presenter?.presentedViewControllers?.contains(child) == true else {
+        return false
+      }
+      hasBeenPresented = true
+      return true
+    }
+
+    /// Whether the view controller, having been presented, has since been dismissed and has left
+    /// the screen, or has gone away altogether.
+    func isOver() -> Bool {
+      guard let child else { return true }
+      let isPresented = noteWhetherPresented()
+      return hasBeenPresented && !isPresented
+        && (!child.isViewLoaded || child.view.window?.isVisible != true)
     }
 
     /// Reports that the view controller has ended, unless that has been reported already.

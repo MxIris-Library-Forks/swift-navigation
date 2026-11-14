@@ -47,7 +47,7 @@ final class StaticNavigationStackController: NavigationStackController, AppKitCa
 }
 
 /// The bottom of the stack: a button for each feature, and one that pushes all three at once.
-private final class StaticRootViewController: XiblessViewController<NSView> {
+private final class StaticRootViewController: XiblessViewController<WindowBackgroundView> {
   let model: StaticNavigationStackController.Model
 
   init(model: StaticNavigationStackController.Model) {
@@ -104,7 +104,7 @@ private final class StaticRootViewController: XiblessViewController<NSView> {
 }
 
 /// A screen on the stack: it can push any feature, or dismiss itself.
-private final class StaticFeatureViewController: XiblessViewController<NSView> {
+private final class StaticFeatureViewController: XiblessViewController<WindowBackgroundView> {
   let feature: StaticNavigationStackController.Model.Path
 
   init(feature: StaticNavigationStackController.Model.Path) {

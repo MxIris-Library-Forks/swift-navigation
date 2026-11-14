@@ -27,7 +27,7 @@ final class ErasedNavigationStackController: NavigationStackController, AppKitCa
 }
 
 /// The bottom of the stack, which registers a destination for each type of data on the path.
-private final class ErasedRootViewController: XiblessViewController<NSView> {
+private final class ErasedRootViewController: XiblessViewController<WindowBackgroundView> {
   let model: ErasedNavigationStackController.Model
 
   init(model: ErasedNavigationStackController.Model) {
@@ -101,7 +101,7 @@ private final class ErasedRootViewController: XiblessViewController<NSView> {
 }
 
 /// A screen on the stack: it can push data of any of the three types, or dismiss itself.
-private final class ErasedFeatureViewController: XiblessViewController<NSView> {
+private final class ErasedFeatureViewController: XiblessViewController<WindowBackgroundView> {
   init(title: String) {
     super.init(nibName: nil, bundle: nil)
     self.title = title

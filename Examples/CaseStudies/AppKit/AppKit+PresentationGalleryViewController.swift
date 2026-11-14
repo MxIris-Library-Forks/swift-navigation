@@ -172,6 +172,8 @@ class PresentationGalleryViewController: XiblessViewController<NSView>, AppKitCa
           self?.model.alertSheet = .discardChanges
         },
         makeButton("Save panel sheet") { [weak self] in
+          // NB: Cancelling the panel leaves the URL as it is, so the last choice is cleared first.
+          self?.model.savedURL = nil
           self?.model.isSavePanelSheetPresented = true
         },
       ]

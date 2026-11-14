@@ -1,6 +1,5 @@
 #if canImport(AppKit) && !targetEnvironment(macCatalyst)
   public import AppKit
-  import AppKitNavigationShim
 
   extension NSViewController {
     /// How a view controller presents another one.
@@ -26,7 +25,8 @@
     /// Like SwiftUI's `sheet` and `popover` view modifiers, but for AppKit. Setting the binding to
     /// `false` dismisses the view controller. When the user dismisses it — a Cancel button wired to
     /// `dismissController(_:)`, a transient popover closing — the binding is set to `false`. The
-    /// view controller is presented once this view controller's view has appeared.
+    /// view controller is presented once this view controller's view is in a window on screen; a
+    /// modal window also goes up while that window is minimized.
     ///
     /// - Parameters:
     ///   - isPresented: A binding to a Boolean value that determines whether to present the view
@@ -161,10 +161,11 @@
     /// provide is true.
     ///
     /// This helper powers ``present(isPresented:style:onDismiss:content:)``, and can define custom
-    /// transitions. A view controller dismissed through `dismiss(_:)` counts as having left the
-    /// screen once its view has disappeared. One that never went through AppKit's presentation,
-    /// such as a child added with `addChild(_:)`, counts as having left the screen as soon as
-    /// `dismiss` returns.
+    /// transitions. A view controller presented through AppKit counts as having left the screen
+    /// once AppKit no longer lists it among this view controller's presented view controllers and
+    /// its window is off screen. One that never went through AppKit's presentation, such as a
+    /// child added with `addChild(_:)`, counts as having left the screen as soon as `dismiss`
+    /// returns.
     ///
     /// - Parameters:
     ///   - isPresented: A binding to a Boolean value that determines whether to present the view
@@ -301,20 +302,22 @@
     let transition: Transition
 
     func whenReady(_ body: @escaping @MainActor () -> Void) -> @MainActor () -> Void {
-      guard let presenter, !presenter._AppKitNavigation_hasViewAppeared else {
-        body()
-        return {}
+      // NB: A sheet or a popover attaches to the presenter's window, so the presenter has to be on
+      //     screen, the way 'NSWindow.sheet' and 'NSView.popover' wait for their anchors. A modal
+      //     window has a window of its own, and a transition of the caller's own is up to the
+      //     caller, so for those the presenter's window may be on screen or in the Dock. A
+      //     presenter that has gone away counts as ready, so that 'begin' finds out.
+      let isReady: @MainActor (NSViewController) -> Bool
+      switch transition {
+      case .style(.sheet), .style(.popover):
+        isReady = { $0.appKitNavigationIsViewOnScreen }
+      case .style(.modalWindow), .style(.custom), .custom:
+        isReady = { $0.appKitNavigationIsViewOnScreenOrMinimized }
       }
-      let wait = CancellableWait()
-      presenter._AppKitNavigation_onViewAppear.append {
-        MainActor._assumeIsolated {
-          guard !wait.isCancelled else { return }
-          body()
-        }
-      }
-      return {
-        wait.isCancelled = true
-      }
+      return RunLoopWait.until(
+        { [weak presenter] in presenter.map(isReady) ?? true },
+        then: body
+      )
     }
 
     func begin(
@@ -326,15 +329,27 @@
         didEnd()
         return
       }
-      // NB: The user dismisses a presented view controller without going through the binding — a
-      //     Cancel button wired to 'dismissController:', a transient popover closing — so the shim
-      //     reports the dismissal, once the view controller's view has disappeared. It counts as
-      //     ended once the window that showed it is off screen too.
-      child._AppKitNavigation_onDismiss = { [weak child] in
-        MainActor._assumeIsolated {
-          _ = RunLoopWait.until({ child?.view.window?.isVisible != true }, then: didEnd)
-        }
-      }
+      // NB: AppKit tells no one but the presenter that it dismissed a view controller, and the user
+      //     can dismiss one without going through the binding: with a Cancel button wired to
+      //     'dismissController:', or by closing a transient popover. So the view controller is
+      //     watched instead. Once AppKit has listed it among the presenter's presented view
+      //     controllers, it counts as ended when it has left that list and its window is off
+      //     screen. The watch starts before presenting, so that it also runs inside any modal loop
+      //     presenting starts.
+      let record = PresentationRecord(didEnd: didEnd)
+      child.appKitNavigationPresentationRecord = record
+      _ = RunLoopWait.until(
+        { [weak presenter, weak child] in
+          guard !record.hasEnded, let child else { return true }
+          let isPresented = presenter?.presentedViewControllers?.contains(child) == true
+          if isPresented {
+            record.hasBeenPresented = true
+          }
+          return record.hasBeenPresented && !isPresented
+            && (!child.isViewLoaded || child.view.window?.isVisible != true)
+        },
+        then: { record.end() }
+      )
       switch transition {
       case let .style(style):
         presenter.present(child, as: style)
@@ -342,6 +357,11 @@
         withUITransaction(transaction) {
           present(child, transaction)
         }
+      }
+      // NB: Noted right away as well, since the watch only looks when the run loop is about to
+      //     wait: the user can dismiss the view controller before that.
+      if presenter.presentedViewControllers?.contains(child) == true {
+        record.hasBeenPresented = true
       }
     }
 
@@ -362,16 +382,52 @@
           return
         }
       }
-      // NB: Not presented through AppKit, or no longer, so no dismissal will be reported.
-      let reportDismissal = child._AppKitNavigation_onDismiss
-      child._AppKitNavigation_onDismiss = nil
-      reportDismissal?()
+      // NB: One that went through AppKit's presentation ends once the watch sees it off screen.
+      //     Any other one, and one whose presenter has gone away, ends now.
+      guard let record = child.appKitNavigationPresentationRecord else { return }
+      if record.hasBeenPresented, presenter != nil {
+        return
+      }
+      record.end()
     }
   }
 
-  /// A wait that can be called off after it has been scheduled.
+  /// What a view controller presented by ``ViewControllerPresentationStyle`` reports its end to.
   @MainActor
-  private final class CancellableWait {
-    var isCancelled = false
+  private final class PresentationRecord {
+    /// Whether AppKit has listed the view controller among its presenter's presented ones.
+    var hasBeenPresented = false
+    private var didEnd: (@MainActor () -> Void)?
+
+    init(didEnd: @escaping @MainActor () -> Void) {
+      self.didEnd = didEnd
+    }
+
+    var hasEnded: Bool {
+      didEnd == nil
+    }
+
+    /// Reports that the view controller has ended, unless that has been reported already.
+    func end() {
+      guard let didEnd else { return }
+      self.didEnd = nil
+      didEnd()
+    }
   }
+
+  extension NSViewController {
+    fileprivate var appKitNavigationPresentationRecord: PresentationRecord? {
+      get {
+        objc_getAssociatedObject(self, presentationRecordKey) as? PresentationRecord
+      }
+      set {
+        objc_setAssociatedObject(
+          self, presentationRecordKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC
+        )
+      }
+    }
+  }
+
+  @MainActor
+  private let presentationRecordKey = malloc(1)!
 #endif

@@ -193,16 +193,12 @@ let package = Package(
       name: "AppKitNavigation",
       dependencies: [
         "SwiftNavigation",
-        "AppKitNavigationShim",
         .product(
           name: "AppKitPlus",
           package: "AppKitPlus-Release",
           condition: .when(platforms: [.macOS], traits: ["AppKitPlus"])
         ),
       ]
-    ),
-    .target(
-      name: "AppKitNavigationShim"
     ),
     .testTarget(
       name: "UIKitNavigationTests",

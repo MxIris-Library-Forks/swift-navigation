@@ -16,6 +16,7 @@
 - [0009-appkit-more-control-bindings.md](Evolutions/0009-appkit-more-control-bindings.md)：AppKit 控件绑定第二批——随模型变化的选项、文本视图、集合视图的选中。
 - [0010-appkit-animations-case-study.md](Evolutions/0010-appkit-animations-case-study.md)：AppKit 动画案例。
 - [0011-appkit-stack-navigation.md](Evolutions/0011-appkit-stack-navigation.md)：可选集成 AppKitPlus，把 UIKit 的栈式导航搬到 AppKit。
+- [draft-appkit-remove-shim.md](Evolutions/draft-appkit-remove-shim.md)：去掉 AppKitNavigationShim，不再交换系统方法。
 
 ## Internal
 

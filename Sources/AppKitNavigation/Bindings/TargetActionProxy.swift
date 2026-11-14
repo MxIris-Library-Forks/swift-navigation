@@ -1,12 +1,6 @@
 #if canImport(AppKit) && !targetEnvironment(macCatalyst)
 
 public import AppKit
-import AppKitNavigationShim
-#if AppKitPlus
-  // NB: AppKitPlus declares the same AppKit control-event methods as the shim. Before the macOS 27
-  //     SDK, Swift settles on its declarations, which must then be visible here.
-  import AppKitPlus
-#endif
 
 @MainActor
 class TargetActionProxy: NSObject {
@@ -60,10 +54,6 @@ class TargetActionProxy: NSObject {
       //
       //     A text field's per-keystroke changes arrive through the notification below on every
       //     OS version, so text fields need nothing more.
-      //
-      //     The event set is spelled as a literal on purpose: the option set is named
-      //     'NSControlEvents' when it comes from the shim and 'NSControl.Events' when it comes
-      //     from the macOS 27 SDK, and inference makes both spellings compile.
       control.addTarget(self, action: #selector(invokeAction(_:)), for: [.primaryActionTriggered])
     } else {
       self.originTarget = owner.target

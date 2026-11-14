@@ -193,11 +193,7 @@ let package = Package(
       name: "AppKitNavigation",
       dependencies: [
         "SwiftNavigation",
-        "AppKitNavigationShim",
       ]
-    ),
-    .target(
-      name: "AppKitNavigationShim"
     ),
     .testTarget(
       name: "AppKitNavigationTests",

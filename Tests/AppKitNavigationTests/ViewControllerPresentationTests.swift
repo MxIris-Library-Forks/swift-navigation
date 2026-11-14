@@ -90,11 +90,15 @@
       isPresented = true
       XCTAssertTrue(waitUntil { host.window.attachedSheet != nil }, "The sheet never appeared")
       host.window.attachedSheet?.contentViewController?.dismiss(nil)
-      XCTAssertTrue(waitUntil { host.window.attachedSheet == nil }, "The sheet never went away")
+      XCTAssertTrue(
+        waitUntil { host.window.attachedSheet == nil && !isPresented },
+        "The sheet never went away, or 'false' was never written back"
+      )
 
-      // NB: No waiting here on purpose. The dismissal writes 'false' back synchronously, but
-      //     'observe' only re-runs on a later turn of the main queue, so setting 'true' again
-      //     straight away is exactly the case where the 'false' in between is never observed.
+      // NB: No more waiting here, on purpose. The dismissal writes 'false' back as the run loop
+      //     turn that noticed it ends, but 'observe' only re-runs on a later turn of the main queue,
+      //     so setting 'true' again straight away is exactly the case where the 'false' in between
+      //     is never observed.
       isPresented = true
 
       XCTAssertTrue(
@@ -234,6 +238,40 @@
 
     // MARK: - Modal window style
 
+    /// A modal window has a window of its own, so it does not wait for the presenter's window to
+    /// come back from the Dock.
+    @MainActor
+    func testAModalWindowIsPresentedWhileThePresentersWindowIsMinimized() throws {
+      let viewController = makeViewController(width: 480, height: 320)
+      let window = NSWindow(contentViewController: viewController)
+      window.styleMask.insert(.miniaturizable)
+      window.isReleasedWhenClosed = false
+      window.orderFront(nil)
+      addTeardownBlock { @MainActor in
+        window.close()
+      }
+      window.miniaturize(nil)
+      try XCTSkipUnless(waitUntil { window.isMiniaturized }, "This runner cannot minimize windows")
+      let presentedViewController = makeViewController()
+      @UIBinding var isPresented = false
+      viewController.present(isPresented: $isPresented, style: .modalWindow) {
+        presentedViewController
+      }
+      abortModalLoops(after: 5)
+
+      let wasOnScreen = Recorded(false)
+      perform(after: 0.5) {
+        wasOnScreen.value = presentedViewController.view.window?.isVisible == true
+        isPresented = false
+      }
+      isPresented = true
+
+      XCTAssertTrue(waitUntil(timeout: 4) { !isPresented }, "The binding was never reset")
+      XCTAssertTrue(
+        wasOnScreen.value, "The modal window waited for the presenter's window to come back"
+      )
+    }
+
     @MainActor
     func testSettingTheBindingToFalseDismissesAModalWindow() {
       let host = makeHost()
@@ -261,6 +299,59 @@
         Date().timeIntervalSince(start), 3,
         "The modal window only went away when the safety timer aborted it"
       )
+    }
+
+    @MainActor
+    func testUserDismissingAModalWindowWritesFalseBack() {
+      let host = makeHost()
+      let presentedViewController = makeViewController()
+      @UIBinding var isPresented = false
+      host.viewController.present(isPresented: $isPresented, style: .modalWindow) {
+        presentedViewController
+      }
+      abortModalLoops(after: 5)
+
+      let start = Date()
+      perform(after: 0.5) {
+        // What a Cancel button wired to 'dismissController:' does.
+        presentedViewController.dismiss(nil)
+      }
+      isPresented = true
+
+      XCTAssertTrue(
+        waitUntil(timeout: 4) { !isPresented },
+        "Dismissing the modal window did not write 'false' back"
+      )
+      XCTAssertLessThan(
+        Date().timeIntervalSince(start), 3,
+        "The modal window only went away when the safety timer aborted it"
+      )
+    }
+
+    // MARK: - Popover style
+
+    @MainActor
+    func testUserClosingAPresentedPopoverWritesFalseBack() throws {
+      let host = makeHost()
+      let recorder = recordShownPopovers()
+      @UIBinding var isPresented = false
+      host.viewController.present(
+        isPresented: $isPresented,
+        style: .popover(
+          rect: host.view.bounds, view: host.view, preferredEdge: .maxY, behavior: .transient
+        )
+      ) {
+        self.makeViewController()
+      }
+
+      isPresented = true
+      XCTAssertTrue(
+        waitUntil { recorder.shownPopovers.first?.isShown == true }, "The popover never appeared"
+      )
+      // What a transient popover does once the user clicks elsewhere.
+      try XCTUnwrap(recorder.shownPopovers.first).close()
+
+      XCTAssertTrue(waitUntil { !isPresented }, "Closing the popover did not write 'false' back")
     }
 
     // MARK: - Custom presentation

@@ -10,6 +10,9 @@
   /// app. An unprefixed `textViewDidChangeSelection:` added to `NSTextField` once broke the
   /// selection handling of every text field that way. Carrying the library's name in every such
   /// selector keeps the two apart.
+  ///
+  /// The same scan keeps the library from replacing a system method on purpose: an implementation
+  /// exchanged in shows up under the system's own selector, which does not carry the name.
   // NB: On the main actor because naming an AppKit class from Swift runs its '+initialize' on
   //     the calling thread. Doing that for 'NSView' on a background thread, while other tests run
   //     in parallel, left AppKit tied to the wrong thread: event handling on the main thread then
@@ -24,28 +27,16 @@
       // NB: The library is linked into the test binary. Should that change, the scan would find
       //     nothing and pass for the wrong reason.
       try #require(
-        addedMethods.contains("-[NSViewController _AppKitNavigation_hasViewAppeared]"),
+        addedMethods.contains("-[NSButton appKitNavigationIsOn]"),
         "The scan must find the library's own methods"
       )
 
       let unnamedMethods = addedMethods.filter { method in
         !method.localizedCaseInsensitiveContains("AppKitNavigation")
-          && !Self.deliberatelyReplacedMethods.contains(method)
       }
 
       #expect(unnamedMethods.isEmpty, "Methods without the library's name: \(unnamedMethods)")
     }
-
-    /// The methods the library replaces on purpose: the shim exchanges its own implementations in
-    /// for these, to learn when a view controller appears, disappears or is dismissed, and what
-    /// the user confirmed in a save panel.
-    private static let deliberatelyReplacedMethods: Set<String> = [
-      "-[NSViewController viewDidAppear]",
-      "-[NSViewController viewDidDisappear]",
-      "-[NSViewController dismissViewController:]",
-      "-[NSSavePanel setFinalURL:]",
-      "-[NSSavePanel setFinalURLs:]",
-    ]
 
     /// Every method of the classes defined in the given classes' images whose implementation
     /// lives in this test binary, formatted the way Objective-C prints a method.

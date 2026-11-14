@@ -166,11 +166,10 @@
     weak var presenter: NSViewController?
 
     func whenReady(_ body: @escaping @MainActor () -> Void) -> @MainActor () -> Void {
-      // NB: What has to have come on screen is the stack the push lands on, not the presenter: one
-      //     that something else has been pushed over still pushes onto the top, and so does a
-      //     stack whose window is in the Dock. A presenter in no navigation controller waits for
-      //     its own view, and 'begin' then reports the misuse. One that has gone away counts as
-      //     ready, so that 'begin' finds out.
+      // NB: What has to be in a window on screen, or in the Dock, is the stack the push lands on,
+      //     not the presenter: one that something else has been pushed over still pushes onto the
+      //     top. A presenter in no navigation controller waits for its own view, and 'begin' then
+      //     reports the misuse. One that has gone away counts as ready, so that 'begin' finds out.
       RunLoopWait.until(
         { [weak presenter] in
           guard let presenter else { return true }

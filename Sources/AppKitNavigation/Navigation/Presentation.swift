@@ -305,9 +305,8 @@
       // NB: A sheet or a popover attaches to the presenter's window, so the presenter has to be on
       //     screen, the way 'NSWindow.sheet' and 'NSView.popover' wait for their anchors. A modal
       //     window has a window of its own, and a transition of the caller's own is up to the
-      //     caller, so those only need the presenter's window to have come on screen: one in the
-      //     Dock will do. A presenter that has gone away counts as ready, so that 'begin' finds
-      //     out.
+      //     caller, so for those the presenter's window may be on screen or in the Dock. A
+      //     presenter that has gone away counts as ready, so that 'begin' finds out.
       let isReady: @MainActor (NSViewController) -> Bool
       switch transition {
       case .style(.sheet), .style(.popover):

@@ -21,6 +21,7 @@
 		CA4737FC272F09D00012CAC3 /* Inventory.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA4737F8272F09D00012CAC3 /* Inventory.swift */; };
 		CA47380B272F0D340012CAC3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CA47380A272F0D340012CAC3 /* Assets.xcassets */; };
 		CA473834272F0D860012CAC3 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA47382E272F0D860012CAC3 /* RootView.swift */; };
+		F1A0B0C12EB6D10000A1B2C3 /* SidebarRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A0B0C02EB6D10000A1B2C3 /* SidebarRootView.swift */; };
 		CA473836272F0D860012CAC3 /* CaseStudiesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA473830272F0D860012CAC3 /* CaseStudiesApp.swift */; };
 		CA473837272F0D860012CAC3 /* FactClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA473831272F0D860012CAC3 /* FactClient.swift */; };
 		CA473838272F0D860012CAC3 /* OptionalNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA473832272F0D860012CAC3 /* OptionalNavigation.swift */; };
@@ -105,6 +106,7 @@
 		CA473804272F0D330012CAC3 /* CaseStudies.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CaseStudies.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA47380A272F0D340012CAC3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CA47382E272F0D860012CAC3 /* RootView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		F1A0B0C02EB6D10000A1B2C3 /* SidebarRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarRootView.swift; sourceTree = "<group>"; };
 		CA473830272F0D860012CAC3 /* CaseStudiesApp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CaseStudiesApp.swift; sourceTree = "<group>"; };
 		CA473831272F0D860012CAC3 /* FactClient.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FactClient.swift; sourceTree = "<group>"; };
 		CA473832272F0D860012CAC3 /* OptionalNavigation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OptionalNavigation.swift; sourceTree = "<group>"; };
@@ -261,6 +263,7 @@
 				CA47383C272F0F0D0012CAC3 /* Info.plist */,
 				CA473830272F0D860012CAC3 /* CaseStudiesApp.swift */,
 				CA47382E272F0D860012CAC3 /* RootView.swift */,
+				F1A0B0C02EB6D10000A1B2C3 /* SidebarRootView.swift */,
 				CA47380A272F0D340012CAC3 /* Assets.xcassets */,
 				CA9D70492C1F642A003B672A /* Internal */,
 				CADCA3642C1CE80B00DE645F /* SwiftUI */,
@@ -641,6 +644,7 @@
 				CA9D70562C2087DC003B672A /* EnumControls.swift in Sources */,
 				CA473836272F0D860012CAC3 /* CaseStudiesApp.swift in Sources */,
 				CA473834272F0D860012CAC3 /* RootView.swift in Sources */,
+				F1A0B0C12EB6D10000A1B2C3 /* SidebarRootView.swift in Sources */,
 				CA3D0E322C20B27B00CCF7CD /* UIKit+ConnectToNetworkViewController.swift in Sources */,
 				E9836D962C6CADBB00FC6EFD /* AppKit+NSControlBindingsViewController.swift in Sources */,
 				CA3D0E332C20B27B00CCF7CD /* UIKit+NetworkDetailViewController.swift in Sources */,

@@ -13,11 +13,6 @@ struct RootView: View {
                     UIKitCaseStudiesView()
                 }
                 #endif
-                #if canImport(AppKit) && !targetEnvironment(macCatalyst)
-                NavigationLink("AppKit") {
-                    AppKitCaseStudiesView()
-                }
-                #endif
             }
             .navigationTitle("Case studies")
         }

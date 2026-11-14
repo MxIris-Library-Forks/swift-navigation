@@ -22,6 +22,17 @@ class PresentationGalleryViewController: XiblessViewController<NSView>, AppKitCa
   override func viewDidLoad() {
     super.viewDidLoad()
 
+    let modalWindowState = PresentationStateView()
+    let modalAlertState = PresentationStateView()
+    let modalSessionState = PresentationStateView()
+    let windowSheetState = PresentationStateView()
+    let alertSheetState = PresentationStateView()
+    let savePanelSheetState = PresentationStateView()
+    let toolbarPopoverState = PresentationStateView()
+    let popoverState = PresentationStateView()
+    let viewControllerSheetState = PresentationStateView()
+    let viewControllerWindowState = PresentationStateView()
+    let viewControllerPopoverState = PresentationStateView()
     let popoverButton = makeButton("Show") { [weak self] in
       self?.model.isPopoverPresented = true
     }
@@ -39,6 +50,7 @@ class PresentationGalleryViewController: XiblessViewController<NSView>, AppKitCa
             FormRow(
               "Modal window",
               accessories: [
+                modalWindowState,
                 makeButton("Run") { [weak self] in
                   self?.model.isModalWindowPresented = true
                 },
@@ -47,6 +59,7 @@ class PresentationGalleryViewController: XiblessViewController<NSView>, AppKitCa
             FormRow(
               "Modal alert",
               accessories: [
+                modalAlertState,
                 makeButton("Run") { [weak self] in
                   self?.model.modalAlert = .discardChanges
                 },
@@ -56,25 +69,35 @@ class PresentationGalleryViewController: XiblessViewController<NSView>, AppKitCa
               "Modal session",
               subtitle: "Takes the app's input without blocking",
               accessories: [
+                modalSessionState,
                 makeButton("Show") { [weak self] in
                   self?.model.isModalSessionPresented = true
-                },
-              ]
-            ),
-            FormRow(
-              "Document window",
-              subtitle: "Sheets and a toolbar popover attach to it",
-              accessories: [
-                makeButton("Open") { [weak self] in
-                  self?.openDocumentWindow()
                 },
               ]
             ),
           ]
         ),
         FormSection(
+          "Document window",
+          footer: "The window's own buttons attach these sheets to it, and its toolbar item shows the popover.",
+          rows: [
+            FormRow(
+              "Window",
+              accessories: [
+                makeButton("Open") { [weak self] in
+                  self?.openDocumentWindow()
+                },
+              ]
+            ),
+            FormRow("Window sheet", accessories: [windowSheetState]),
+            FormRow("Alert sheet", accessories: [alertSheetState]),
+            FormRow("Save panel sheet", accessories: [savePanelSheetState]),
+            FormRow("Toolbar popover", accessories: [toolbarPopoverState]),
+          ]
+        ),
+        FormSection(
           "Popovers",
-          rows: [FormRow("From a button", accessories: [popoverButton])]
+          rows: [FormRow("From a button", accessories: [popoverState, popoverButton])]
         ),
         FormSection(
           "View controllers",
@@ -82,6 +105,7 @@ class PresentationGalleryViewController: XiblessViewController<NSView>, AppKitCa
             FormRow(
               "As a sheet",
               accessories: [
+                viewControllerSheetState,
                 makeButton("Present") { [weak self] in
                   self?.model.isViewControllerSheetPresented = true
                 },
@@ -90,12 +114,16 @@ class PresentationGalleryViewController: XiblessViewController<NSView>, AppKitCa
             FormRow(
               "In a modal window",
               accessories: [
+                viewControllerWindowState,
                 makeButton("Present") { [weak self] in
                   self?.model.isViewControllerWindowPresented = true
                 },
               ]
             ),
-            FormRow("In a popover", accessories: [viewControllerPopoverButton]),
+            FormRow(
+              "In a popover",
+              accessories: [viewControllerPopoverState, viewControllerPopoverButton]
+            ),
           ]
         ),
         FormSection(
@@ -108,6 +136,17 @@ class PresentationGalleryViewController: XiblessViewController<NSView>, AppKitCa
     )
 
     observe { [unowned self] in
+      modalWindowState.update(isPresented: model.isModalWindowPresented)
+      modalAlertState.update(isPresented: model.modalAlert != nil)
+      modalSessionState.update(isPresented: model.isModalSessionPresented)
+      windowSheetState.update(isPresented: model.isWindowSheetPresented)
+      alertSheetState.update(isPresented: model.alertSheet != nil)
+      savePanelSheetState.update(isPresented: model.isSavePanelSheetPresented)
+      toolbarPopoverState.update(isPresented: model.isToolbarPopoverPresented)
+      popoverState.update(isPresented: model.isPopoverPresented)
+      viewControllerSheetState.update(isPresented: model.isViewControllerSheetPresented)
+      viewControllerWindowState.update(isPresented: model.isViewControllerWindowPresented)
+      viewControllerPopoverState.update(isPresented: model.isViewControllerPopoverPresented)
       logLabel.stringValue = model.log.isEmpty ? "Nothing dismissed yet." : model.log.joined(separator: "\n")
     }
 

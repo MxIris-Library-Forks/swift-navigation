@@ -13,10 +13,10 @@ class BasicsNavigationViewController: XiblessViewController<NSView>, AppKitCaseS
   override func viewDidLoad() {
     super.viewDidLoad()
 
-    let openPanelStatusLabel = makeValueLabel()
+    let openPanelState = PresentationStateView()
     let chosenFileLabel = makeValueLabel()
-    let numberSheetStatusLabel = makeValueLabel()
-    let sheetStatusLabel = makeValueLabel()
+    let numberSheetState = PresentationStateView()
+    let sheetState = PresentationStateView()
 
     addForm(
       [
@@ -27,7 +27,7 @@ class BasicsNavigationViewController: XiblessViewController<NSView>, AppKitCaseS
             FormRow(
               "Open panel",
               accessories: [
-                openPanelStatusLabel,
+                openPanelState,
                 makeButton("Show") { [weak self] in
                   self?.model.openPanelMessage = "Choose a file to show its name."
                 },
@@ -38,7 +38,7 @@ class BasicsNavigationViewController: XiblessViewController<NSView>, AppKitCaseS
               "Sheet with a number",
               subtitle: "Closes itself after 3 seconds",
               accessories: [
-                numberSheetStatusLabel,
+                numberSheetState,
                 makeButton("Show") { [weak self] in
                   let number = Int.random(in: 1 ... 1_000)
                   self?.model.sheet = number
@@ -61,7 +61,7 @@ class BasicsNavigationViewController: XiblessViewController<NSView>, AppKitCaseS
             FormRow(
               "Sheet",
               accessories: [
-                sheetStatusLabel,
+                sheetState,
                 makeButton("Show") { [weak self] in
                   self?.model.isSheetPresented = true
                 },
@@ -74,10 +74,10 @@ class BasicsNavigationViewController: XiblessViewController<NSView>, AppKitCaseS
     )
 
     observe { [unowned self] in
-      openPanelStatusLabel.stringValue = model.openPanelMessage != nil ? "Shown" : "Not shown"
+      openPanelState.update(isPresented: model.openPanelMessage != nil)
       chosenFileLabel.stringValue = model.url?.lastPathComponent ?? "None"
-      numberSheetStatusLabel.stringValue = model.sheet.map { "Showing \($0)" } ?? "Not shown"
-      sheetStatusLabel.stringValue = model.isSheetPresented ? "Shown" : "Not shown"
+      numberSheetState.update(isPresented: model.sheet != nil, detail: model.sheet?.description)
+      sheetState.update(isPresented: model.isSheetPresented)
     }
 
     modal(item: $model.openPanelMessage, id: \.self) { [unowned self] message in

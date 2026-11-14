@@ -18,8 +18,8 @@ class NestedModalViewController: XiblessViewController<NSView>, AppKitCaseStudy 
   override func viewDidLoad() {
     super.viewDidLoad()
 
-    let settingsWindowLabel = makeValueLabel()
-    let confirmationAlertLabel = makeValueLabel()
+    let settingsWindowState = PresentationStateView()
+    let confirmationAlertState = PresentationStateView()
     let resetCountLabel = makeValueLabel()
 
     addForm(
@@ -31,13 +31,13 @@ class NestedModalViewController: XiblessViewController<NSView>, AppKitCaseStudy 
             FormRow(
               "Settings window",
               accessories: [
-                settingsWindowLabel,
+                settingsWindowState,
                 makeButton("Open") { [weak self] in
                   self?.model.isSettingsPresented = true
                 },
               ]
             ),
-            FormRow("Confirmation alert", accessories: [confirmationAlertLabel]),
+            FormRow("Confirmation alert", accessories: [confirmationAlertState]),
             FormRow("Resets", accessories: [resetCountLabel]),
           ]
         ),
@@ -46,8 +46,8 @@ class NestedModalViewController: XiblessViewController<NSView>, AppKitCaseStudy 
     )
 
     observe { [unowned self] in
-      settingsWindowLabel.stringValue = model.isSettingsPresented ? "Open" : "Closed"
-      confirmationAlertLabel.stringValue = model.resetConfirmation != nil ? "Open" : "Closed"
+      settingsWindowState.update(isPresented: model.isSettingsPresented)
+      confirmationAlertState.update(isPresented: model.resetConfirmation != nil)
       resetCountLabel.stringValue = model.resetCount.description
     }
 

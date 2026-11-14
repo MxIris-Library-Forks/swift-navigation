@@ -19,6 +19,9 @@ class WiFiSettingsViewController: XiblessViewController<NSScrollView>, AppKitCas
 
     let collectionView = NSCollectionView()
 
+    /// The header above the sections, which shows where the settings navigate to.
+    private weak var destinationHeader: WiFiSettingsDestinationHeaderView?
+
     init(model: WiFiSettingsModel) {
         self.model = model
         super.init(nibName: nil, bundle: nil)
@@ -55,8 +58,20 @@ class WiFiSettingsViewController: XiblessViewController<NSScrollView>, AppKitCas
         collectionViewLayout.register(WiFiSettingsSectionBackgroundView.self, forDecorationViewOfKind: .background)
         let configuration = NSCollectionViewCompositionalLayoutConfiguration()
         configuration.interSectionSpacing = 20
+        configuration.boundarySupplementaryItems = [
+            NSCollectionLayoutBoundarySupplementaryItem(
+                layoutSize: NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .absolute(60)),
+                elementKind: WiFiSettingsDestinationHeaderView.elementKind,
+                alignment: .top
+            ),
+        ]
         collectionViewLayout.configuration = configuration
         collectionView.collectionViewLayout = collectionViewLayout
+        collectionView.register(
+            WiFiSettingsDestinationHeaderView.self,
+            forSupplementaryViewOfKind: WiFiSettingsDestinationHeaderView.elementKind,
+            withIdentifier: .init(WiFiSettingsDestinationHeaderView.self)
+        )
         collectionView.register(WiFiSettingsSwitchViewItem.self, forItemWithIdentifier: .init(WiFiSettingsSwitchViewItem.self))
         collectionView.register(WiFiSettingsConnectedNetworkViewItem.self, forItemWithIdentifier: .init(WiFiSettingsConnectedNetworkViewItem.self))
         collectionView.register(WiFiSettingsFoundedNetworkViewItem.self, forItemWithIdentifier: .init(WiFiSettingsFoundedNetworkViewItem.self))
@@ -95,11 +110,33 @@ class WiFiSettingsViewController: XiblessViewController<NSScrollView>, AppKitCas
             }
         }
 
+        dataSource.supplementaryViewProvider = { [weak self] collectionView, elementKind, indexPath in
+            guard elementKind == WiFiSettingsDestinationHeaderView.elementKind else { return nil }
+            let header = collectionView.makeSupplementaryView(
+                ofKind: elementKind,
+                withIdentifier: .init(WiFiSettingsDestinationHeaderView.self),
+                for: indexPath
+            ) as! WiFiSettingsDestinationHeaderView
+            if let self {
+                destinationHeader = header
+                let destination = destinationDescription
+                header.stateView.update(isPresented: destination != nil, detail: destination)
+            }
+            return header
+        }
+
         observe { [unowned self] in
             dataSource.apply(
                 NSDiffableDataSourceSnapshot(model: model),
                 animatingDifferences: true
             )
+        }
+
+        observe { [unowned self] in
+            // NB: Reads the destination even before the header is made, so that its changes are
+            //     observed from the start.
+            let destination = destinationDescription
+            destinationHeader?.stateView.update(isPresented: destination != nil, detail: destination)
         }
 
         modalSession(item: $model.destination.connect) { model in
@@ -113,6 +150,43 @@ class WiFiSettingsViewController: XiblessViewController<NSScrollView>, AppKitCas
         present(item: $model.destination.detail, style: .sheet) { model in
             NetworkDetailViewController(model: model)
         }
+    }
+
+    /// What the settings navigate to, if anything.
+    private var destinationDescription: String? {
+        switch model.destination {
+        case let .connect(connectModel): "Connect to “\(connectModel.network.name)”"
+        case let .detail(detailModel): "Details of “\(detailModel.network.name)”"
+        case nil: nil
+        }
+    }
+}
+
+/// The top of the settings: one row that shows where the settings navigate to.
+class WiFiSettingsDestinationHeaderView: NSView, NSCollectionViewElement {
+    static let elementKind = "DestinationHeader"
+
+    let stateView = PresentationStateView()
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        let section = FormSection(rows: [FormRow("Destination", accessories: [stateView])])
+        section.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(section)
+        // NB: The same centered column, no wider than 640 points, that the sections below use.
+        let fillsTheWidth = section.widthAnchor.constraint(equalTo: widthAnchor, constant: -48)
+        fillsTheWidth.priority = .defaultHigh
+        NSLayoutConstraint.activate([
+            section.topAnchor.constraint(equalTo: topAnchor, constant: 20),
+            section.centerXAnchor.constraint(equalTo: centerXAnchor),
+            section.widthAnchor.constraint(lessThanOrEqualToConstant: 640),
+            fillsTheWidth,
+        ])
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
 }
 

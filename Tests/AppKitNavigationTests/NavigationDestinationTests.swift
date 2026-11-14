@@ -61,6 +61,28 @@
       XCTAssertEqual(dismissCount.value, 1)
     }
 
+    /// A push needs a navigation stack in a window, not one on screen: one asked for while the
+    /// window is in the Dock lands at once.
+    @MainActor
+    func testPushesWhileTheWindowIsMinimized() throws {
+      let (navigationController, root) = makeNavigationController()
+      let window = try XCTUnwrap(navigationController.view.window)
+      window.styleMask.insert(.miniaturizable)
+      window.miniaturize(nil)
+      try XCTSkipUnless(waitUntil { window.isMiniaturized }, "This runner cannot minimize windows")
+      @UIBinding var detail: Detail? = nil
+      root.navigationDestination(item: $detail) { detail in
+        DetailViewController(name: detail.name)
+      }
+
+      withoutAnimation { detail = Detail(name: "Mars") }
+
+      XCTAssertTrue(
+        waitUntil { topName(of: navigationController) == "Mars" },
+        "The destination waited for the window to come back"
+      )
+    }
+
     /// A push lands on top of the stack, wherever in it the view controller that asks for it is.
     @MainActor
     func testAViewControllerThatAnotherDestinationCoversStillPushes() {

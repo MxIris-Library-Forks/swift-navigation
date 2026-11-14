@@ -54,6 +54,15 @@
     var appKitNavigationIsViewOnScreen: Bool {
       isViewLoaded && view.window?.isVisible == true
     }
+
+    /// Whether the view controller's view is in a window that is on screen or minimized to the
+    /// Dock.
+    ///
+    /// Never loads the view.
+    var appKitNavigationIsViewOnScreenOrMinimized: Bool {
+      guard isViewLoaded, let window = view.window else { return false }
+      return window.isVisible || window.isMiniaturized
+    }
   }
 
 #endif

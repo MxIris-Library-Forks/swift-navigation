@@ -25,7 +25,8 @@
     /// Like SwiftUI's `sheet` and `popover` view modifiers, but for AppKit. Setting the binding to
     /// `false` dismisses the view controller. When the user dismisses it — a Cancel button wired to
     /// `dismissController(_:)`, a transient popover closing — the binding is set to `false`. The
-    /// view controller is presented once this view controller's view is in a window on screen.
+    /// view controller is presented once this view controller's view is in a window on screen; a
+    /// modal window also goes up while that window is minimized.
     ///
     /// - Parameters:
     ///   - isPresented: A binding to a Boolean value that determines whether to present the view
@@ -302,10 +303,20 @@
 
     func whenReady(_ body: @escaping @MainActor () -> Void) -> @MainActor () -> Void {
       // NB: A sheet or a popover attaches to the presenter's window, so the presenter has to be on
-      //     screen, the way 'NSWindow.sheet' and 'NSView.popover' wait for their anchors. One that
-      //     has gone away counts as ready, so that 'begin' finds out.
-      RunLoopWait.until(
-        { [weak presenter] in presenter?.appKitNavigationIsViewOnScreen ?? true },
+      //     screen, the way 'NSWindow.sheet' and 'NSView.popover' wait for their anchors. A modal
+      //     window has a window of its own, and a transition of the caller's own is up to the
+      //     caller, so those only need the presenter's window to have come on screen: one in the
+      //     Dock will do. A presenter that has gone away counts as ready, so that 'begin' finds
+      //     out.
+      let isReady: @MainActor (NSViewController) -> Bool
+      switch transition {
+      case .style(.sheet), .style(.popover):
+        isReady = { $0.appKitNavigationIsViewOnScreen }
+      case .style(.modalWindow), .style(.custom), .custom:
+        isReady = { $0.appKitNavigationIsViewOnScreenOrMinimized }
+      }
+      return RunLoopWait.until(
+        { [weak presenter] in presenter.map(isReady) ?? true },
         then: body
       )
     }

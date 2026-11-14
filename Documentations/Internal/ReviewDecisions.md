@@ -30,6 +30,17 @@
 - **理由**：在 macOS 27.2 上实测，`NSFontManager()` 返回的就是 `NSFontManager.shared`。
 - **复查条件**：将来某个系统版本上它不再返回共享实例时。
 
+### 同一个视图控制器实例再次弹出时，覆盖上一次弹出的结束记录
+
+- **裁决**：误报。（2026-11-14）
+- **理由**：结束记录挂在被弹出的视图控制器上，只有一个槽位。可同一个 `BindingPresenter` 在上一次内容结束之前不会再弹出（`.ending` 阶段什么都不做），两个绑定同时弹出同一个实例又是 AppKit 本身不支持的，构造不出覆盖的场景。`main` 上交换方法时的 `_AppKitNavigation_onDismiss` 同样只有一个槽位。
+
+### 自定义 presentation animator 不把视图移出窗口时，内容永远不算结束
+
+- **裁决**：与改动前相同，不按问题处理。（2026-11-14）
+- **理由**：判断结束要等被弹出的视图控制器的窗口不再可见。只有动画器在关闭时既不移除视图、也不关窗口才会卡住，而这样的动画器本身就把被关闭的视图留在了界面上。`main` 上交换方法时，报告关闭之后也是等同一个条件，提案 [0005-appkit-presentation-redesign](../Evolutions/0005-appkit-presentation-redesign.md) 有意这样定，好让有动画时 `onDismiss` 也在内容下屏之后才运行。
+- **复查条件**：出现合理的动画器需要把视图留在窗口里时。
+
 ## 暂缓处理
 
 ### 上游 `UIKitNavigation` 的 `UITextField` 选区绑定同样把 UTF-16 偏移当成字符数
@@ -37,6 +48,46 @@
 - **裁决**：确认是同类问题，fork 内不修，暂不向上游报告。（2026-11-03，暂不报告由用户决定）
 - **理由**：AppKit 那份已按 UTF-16 换算修好。UIKit 那份是上游拥有的代码，fork 保持与上游一致，在 fork 里改会让以后的合并持续冲突。
 - **复查条件**：上游自己修了，或者 fork 的 UIKit 用户撞上这个问题时。
+
+### 视图控制器弹出与 push 的结束检测，和 `navigationDestination` 的记录写了两套
+
+- **裁决**：不是缺陷，暂缓合并。（2026-11-14）
+- **理由**：去掉 AppKitNavigationShim 时，弹出改用「先出现在列表里、再离开列表且下屏」的检测，形状和 push 的 `PushRecord` 相近，但判断条件不同（`presentedViewControllers` 对父视图控制器）。push 那套来自另一份提案，合成一个共用 helper 属于单独的重构。
+- **复查条件**：其中一套要改检测条件时，一并合并。
+
+## 有意的取舍
+
+这些发现确实存在，是方案主动接受的代价，理由仍成立就不再重审。
+
+### 去掉 NSControl 的重复声明后，旧 SDK 编不过 AppKitNavigation
+
+- **裁决**：按用户决定，不修。（2026-11-14）
+- **理由**：macOS 27 以前的 SDK 没有公开 `addTarget(_:action:for:)`，`Package@swift-6.0/6.1/6.2.swift` 选中的 Xcode 26 及更早版本编到 `TargetActionProxy` 时报错。shim 里的这段声明当初就写明「macOS 27 SDK 成为最低要求时整段删掉」；用户确认项目已统一使用 Xcode 27。fork 的 CI 仍用 Xcode 16.4，在 `main` 上本来就是红的（examples 任务失败）。其余几个库在旧 Xcode 上不受影响。
+- **复查条件**：需要重新支持 Xcode 26 时。
+
+### `destination` 的 present 闭包从别的视图控制器弹出时，察觉不到用户关闭
+
+- **裁决**：不修。（2026-11-14）
+- **理由**：察觉用户关闭只看调用 `destination` 的那个视图控制器的 `presentedViewControllers`，文档已写明。改动前交换 `dismissViewController:` 不分发起者，所以这是这次引入的差别。但从别的视图控制器弹 sheet 没有实际用处（sheet 挂在同一个窗口上），要支持就得读被弹出者的 `presentingViewController`，它不是弱引用，发起者释放时读取会崩。
+- **复查条件**：有调用方确实需要从别处弹出时。
+
+### 存取面板的 URL 绑定只在经库的 `sheet` / `modal` 弹出时写回
+
+- **裁决**：按用户决定，不修。（2026-11-14）
+- **理由**：不交换私有方法，就只有面板的结果（`beginSheetModal` 的回调、`runModal` 的返回值）能告诉库用户选了什么，而只有运行面板的一方看得到。App 自己 `begin` / `runModal` 时从结果里取即可。依赖这个 fork 的 App 与案例都经 `sheet` / `modal` 使用。
+- **复查条件**：有 App 需要自己运行面板又想用绑定时。
+
+### 弹出期间每轮 run loop 都检查一次
+
+- **裁决**：不修。（2026-11-14）
+- **理由**：察觉用户关闭弹出的视图控制器，靠的是弹出期间每轮 run loop（休眠前和每次运行结束）调用一次检查闭包，取一次 `presentedViewControllers`。改动前视图控制器的弹出没有这项开销，sheet、popover、push 的等待早就这样做。一次闭包调用加一个小数组，与处理事件本身相比可以忽略，这是不交换方法的代价。
+- **复查条件**：出现可测的性能问题时（用 `sample` 采样）。
+
+### 栈不在任何窗口里时，push 推迟到它出现
+
+- **裁决**：剩下的这部分不修。（2026-11-14）
+- **理由**：改动前只要发起者出现过一次就立刻 push；现在要等栈所在的窗口在屏幕上或已最小化。最小化的情形已修好，有回归测试。还剩未选中的标签页：栈的视图不在任何窗口里，push 推迟到标签页被选中时补上，不会丢。不交换 `viewDidAppear` 就无从知道视图是否出现过。
+- **复查条件**：有 App 依赖往隐藏标签页里的栈 push 时。
 
 ## 系统限制
 
@@ -56,4 +107,4 @@
 
 ### transient popover 被点外部关闭时的回写
 
-- `present(style: .popover(...))` 在用户关闭时把 binding 写回 `nil`，依靠的是 AppKit 调用 `dismissViewController:`。用 `dismiss(nil)` 关闭的情形有测试覆盖；点击 popover 外部触发的 transient 关闭，在单元测试里没法模拟，所以 AppKit 在这条路径上是否也调用 `dismissViewController:`，还没有验证。
+- `present(style: .popover(...))` 在用户关闭时把 binding 写回 `nil`。2026-11-14 起不再依靠 AppKit 调用 `dismissViewController:`：只要 popover 关闭后 AppKit 把视图控制器移出发起者的 `presentedViewControllers`、它的窗口也不再可见，就会写回。`ViewControllerPresentationTests` 用 `NSPopover.close()` 关闭的情形有测试覆盖；点击 popover 外部触发的关闭在单元测试里没法模拟，那条路径是否也走 `close()`，还没有验证。

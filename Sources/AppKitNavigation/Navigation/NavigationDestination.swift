@@ -11,8 +11,8 @@
     /// `NSNavigationController`. Setting the binding to `false` pops the view controller, along
     /// with anything pushed above it. When the user goes back past it — with the back button, ⌘↑
     /// or a swipe — or it dismisses itself with `traitCollection.dismiss()`, the binding is set to
-    /// `false`. The view controller is pushed once the navigation controller is on screen, onto
-    /// the top of its stack.
+    /// `false`. The view controller is pushed onto the top of the stack once the navigation
+    /// controller is in a window that is on screen or minimized.
     ///
     /// Available with the `AppKitPlus` package trait.
     ///
@@ -166,16 +166,17 @@
     weak var presenter: NSViewController?
 
     func whenReady(_ body: @escaping @MainActor () -> Void) -> @MainActor () -> Void {
-      // NB: What has to be on screen is the stack the push lands on, not the presenter: one that
-      //     something else has been pushed over still pushes onto the top. A presenter in no
-      //     navigation controller waits for its own view, and 'begin' then reports the misuse. One
-      //     that has gone away counts as ready, so that 'begin' finds out.
+      // NB: What has to have come on screen is the stack the push lands on, not the presenter: one
+      //     that something else has been pushed over still pushes onto the top, and so does a
+      //     stack whose window is in the Dock. A presenter in no navigation controller waits for
+      //     its own view, and 'begin' then reports the misuse. One that has gone away counts as
+      //     ready, so that 'begin' finds out.
       RunLoopWait.until(
         { [weak presenter] in
           guard let presenter else { return true }
           let navigationController =
             presenter.navigationController ?? presenter as? NSNavigationController
-          return (navigationController ?? presenter).appKitNavigationIsViewOnScreen
+          return (navigationController ?? presenter).appKitNavigationIsViewOnScreenOrMinimized
         },
         then: body
       )

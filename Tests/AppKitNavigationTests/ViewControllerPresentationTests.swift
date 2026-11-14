@@ -238,6 +238,40 @@
 
     // MARK: - Modal window style
 
+    /// A modal window has a window of its own, so it does not wait for the presenter's window to
+    /// come back from the Dock.
+    @MainActor
+    func testAModalWindowIsPresentedWhileThePresentersWindowIsMinimized() throws {
+      let viewController = makeViewController(width: 480, height: 320)
+      let window = NSWindow(contentViewController: viewController)
+      window.styleMask.insert(.miniaturizable)
+      window.isReleasedWhenClosed = false
+      window.orderFront(nil)
+      addTeardownBlock { @MainActor in
+        window.close()
+      }
+      window.miniaturize(nil)
+      try XCTSkipUnless(waitUntil { window.isMiniaturized }, "This runner cannot minimize windows")
+      let presentedViewController = makeViewController()
+      @UIBinding var isPresented = false
+      viewController.present(isPresented: $isPresented, style: .modalWindow) {
+        presentedViewController
+      }
+      abortModalLoops(after: 5)
+
+      let wasOnScreen = Recorded(false)
+      perform(after: 0.5) {
+        wasOnScreen.value = presentedViewController.view.window?.isVisible == true
+        isPresented = false
+      }
+      isPresented = true
+
+      XCTAssertTrue(waitUntil(timeout: 4) { !isPresented }, "The binding was never reset")
+      XCTAssertTrue(
+        wasOnScreen.value, "The modal window waited for the presenter's window to come back"
+      )
+    }
+
     @MainActor
     func testSettingTheBindingToFalseDismissesAModalWindow() {
       let host = makeHost()

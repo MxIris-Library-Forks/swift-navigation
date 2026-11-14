@@ -18,3 +18,4 @@
 | 0010 | [AppKit 动画案例](0010-appkit-animations-case-study.md) | Implemented |
 | 0011 | [可选集成 AppKitPlus：把 UIKit 的栈式导航搬到 AppKit](0011-appkit-stack-navigation.md) | Implemented |
 | draft | [去掉 AppKitNavigationShim：不再交换系统方法](draft-appkit-remove-shim.md) | In Progress |
+| draft | [AppKit 案例改用系统设置式的分组排版](draft-appkit-examples-redesign.md) | In Progress |

@@ -1,5 +1,4 @@
 #if canImport(AppKit) && !targetEnvironment(macCatalyst)
-import SwiftUI
 import AppKit
 import AppKitNavigation
 
@@ -24,39 +23,53 @@ class ConciseEnumNavigationViewController: XiblessViewController<NSView>, AppKit
   override func viewDidLoad() {
     super.viewDidLoad()
 
-    let showAlertButton = NSButton()
-    showAlertButton.addAction { [weak self] _ in
-      self?.model.destination = .alert("Hello!")
-    }
-    let showSheetButton = NSButton()
-    showSheetButton.addAction { [weak self] _ in
-      self?.model.destination = .sheet(.random(in: 1 ... 1_000))
-    }
-    let showSheetFromBooleanButton = NSButton()
-    showSheetFromBooleanButton.addAction { [weak self] _ in
-      self?.model.destination = .sheetWithoutPayload
-    }
+    let alertStatusLabel = makeValueLabel()
+    let numberSheetStatusLabel = makeValueLabel()
+    let sheetStatusLabel = makeValueLabel()
 
-    let stack = NSStackView(views: [
-      showAlertButton,
-      showSheetButton,
-      showSheetFromBooleanButton,
-    ])
-    stack.orientation = .vertical
-    stack.spacing = 12
-    stack.translatesAutoresizingMaskIntoConstraints = false
-
-    view.addSubview(stack)
-    NSLayoutConstraint.activate([
-      stack.centerYAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerYAnchor),
-      stack.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-      stack.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-    ])
+    addForm(
+      [
+        FormSection(
+          "Destination",
+          footer: "One optional enum holds whichever of these is up, so at most one can be presented at a time.",
+          rows: [
+            FormRow(
+              "Alert",
+              accessories: [
+                alertStatusLabel,
+                makeButton("Show") { [weak self] in
+                  self?.model.destination = .alert("Hello!")
+                },
+              ]
+            ),
+            FormRow(
+              "Sheet with a number",
+              accessories: [
+                numberSheetStatusLabel,
+                makeButton("Show") { [weak self] in
+                  self?.model.destination = .sheet(.random(in: 1 ... 1_000))
+                },
+              ]
+            ),
+            FormRow(
+              "Sheet without a payload",
+              accessories: [
+                sheetStatusLabel,
+                makeButton("Show") { [weak self] in
+                  self?.model.destination = .sheetWithoutPayload
+                },
+              ]
+            ),
+          ]
+        ),
+      ],
+      to: view
+    )
 
     observe { [unowned self] in
-      showAlertButton.title = "Alert is presented: \(model.destination?.alert != nil ? "✅" : "❌")"
-      showSheetButton.title = "Sheet is presented: \(model.destination?.sheet != nil ? "✅" : "❌")"
-      showSheetFromBooleanButton.title = "Sheet is presented from boolean: \(model.destination?.sheetWithoutPayload != nil ? "✅" : "❌")"
+      alertStatusLabel.stringValue = model.destination?.alert != nil ? "Shown" : "Not shown"
+      numberSheetStatusLabel.stringValue = model.destination?.sheet.map { "Showing \($0)" } ?? "Not shown"
+      sheetStatusLabel.stringValue = model.destination?.sheetWithoutPayload != nil ? "Shown" : "Not shown"
     }
 
     modal(item: $model.destination.alert, id: \.self) { message in
@@ -66,25 +79,15 @@ class ConciseEnumNavigationViewController: XiblessViewController<NSView>, AppKit
       alert.addButton(withTitle: "OK")
       return alert
     }
-    present(item: $model.destination.sheet, id: \.self, style: .sheet) { [unowned self] count in
-      NSHostingController(
-        rootView: Form {
-          Text(count.description)
-          Button("Close") {
-            self.model.destination = nil
-          }
-        }.frame(width: 200, height: 200, alignment: .center)
-      )
+    present(item: $model.destination.sheet, id: \.self, style: .sheet) { [unowned self] number in
+      MessageViewController(message: "The number is \(number).") { [weak self] in
+        self?.model.destination = nil
+      }
     }
     present(isPresented: UIBinding($model.destination.sheetWithoutPayload), style: .sheet) { [unowned self] in
-      NSHostingController(
-        rootView: Form {
-          Text("Hello!")
-          Button("Close") {
-            self.model.destination = nil
-          }
-        }.frame(width: 200, height: 200, alignment: .center)
-      )
+      MessageViewController(message: "Hello!") { [weak self] in
+        self?.model.destination = nil
+      }
     }
   }
 

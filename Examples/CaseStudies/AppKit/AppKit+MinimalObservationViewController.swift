@@ -19,28 +19,38 @@ class MinimalObservationViewController: XiblessViewController<NSView>, AppKitCas
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        let countLabel = NSTextField(labelWithString: "")
-        let incrementButton = NSButton(title: "Increment", target: self, action: #selector(incrementButtonAction(_:)))
-        let isCountHiddenSwitch = NSSwitch(isOn: $model.isCountHidden)
-        let isCountHiddenLabel = NSTextField(labelWithString: "Is count hidden?")
-        let viewRenderLabel = NSTextField(labelWithString: "")
-        let stack = NSStackView(views: [
-            countLabel,
-            incrementButton,
-            isCountHiddenLabel,
-            isCountHiddenSwitch,
-            viewRenderLabel,
-        ])
-        stack.orientation = .vertical
-        stack.alignment = .centerX
-        stack.spacing = 12
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.centerYAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerYAnchor),
-            stack.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-        ])
+        let countLabel = makeValueLabel()
+        let viewRenderLabel = makeValueLabel()
+
+        addForm(
+            [
+                FormSection(
+                    "Counter",
+                    footer: """
+                    Hide the count and increment again: the count keeps changing, but the view no \
+                    longer re-renders, because the 'observe' closure stops reading it.
+                    """,
+                    rows: [
+                        FormRow(
+                            "Count",
+                            accessories: [
+                                countLabel,
+                                makeButton("Increment") { [weak self] in
+                                    self?.model.count += 1
+                                },
+                            ]
+                        ),
+                        FormRow("Hide the count", accessories: [NSSwitch(isOn: $model.isCountHidden)]),
+                    ]
+                ),
+                FormSection(
+                    "Rendering",
+                    rows: [FormRow("Times the view rendered", accessories: [viewRenderLabel])]
+                ),
+            ],
+            to: view
+        )
+
         let viewRenderCount = LockIsolated(0)
         observe { [unowned self] in
             viewRenderCount.withValue { $0 += 1 }
@@ -51,12 +61,8 @@ class MinimalObservationViewController: XiblessViewController<NSView>, AppKitCas
                 countLabel.stringValue = model.count.description
             }
             countLabel.isHidden = model.isCountHidden
-            viewRenderLabel.stringValue = "# of view renders: \(viewRenderCount.value)"
+            viewRenderLabel.stringValue = viewRenderCount.value.description
         }
-    }
-
-    @objc func incrementButtonAction(_ sender: NSButton) {
-        model.count += 1
     }
 
     @Observable

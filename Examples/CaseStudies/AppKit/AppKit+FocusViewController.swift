@@ -15,98 +15,73 @@ class FocusViewController: XiblessViewController<NSView>, AppKitCaseStudy {
   override func viewDidLoad() {
     super.viewDidLoad()
 
-    let bioTextField = NSTextField(text: $model.bio)
-    bioTextField.bind(focus: $model.focus, equals: .bio)
-    bioTextField.bezelStyle = .roundedBezel
-    bioTextField.placeholderString = "Bio"
-    let emailTextField = NSTextField(text: $model.email)
-    emailTextField.bind(focus: $model.focus, equals: .email)
-    emailTextField.bezelStyle = .roundedBezel
-    emailTextField.placeholderString = "Email"
-    let passwordTextField = NSSecureTextField(text: $model.password)
-    passwordTextField.bind(focus: $model.focus, equals: .password)
-    passwordTextField.bezelStyle = .roundedBezel
-    passwordTextField.placeholderString = "Password"
     let usernameTextField = NSTextField(text: $model.username)
     usernameTextField.bind(focus: $model.focus, equals: .username)
-    usernameTextField.bezelStyle = .roundedBezel
-    usernameTextField.placeholderString = "Username"
-
-    let currentFocusLabel = NSTextField(labelWithString: "")
-
-    let focusBioButton = NSButton()
-    focusBioButton.addAction { [weak self] _ in
-      self?.model.focus = .bio
+    let emailTextField = NSTextField(text: $model.email)
+    emailTextField.bind(focus: $model.focus, equals: .email)
+    let passwordTextField = NSSecureTextField(text: $model.password)
+    passwordTextField.bind(focus: $model.focus, equals: .password)
+    let bioTextField = NSTextField(text: $model.bio)
+    bioTextField.bind(focus: $model.focus, equals: .bio)
+    for textField in [usernameTextField, emailTextField, passwordTextField, bioTextField] {
+      textField.bezelStyle = .roundedBezel
+      textField.widthAnchor.constraint(equalToConstant: 240).isActive = true
     }
+    let fieldRows: [(FormRow, Model.Focus)] = [
+      (FormRow("Username", accessories: [usernameTextField]), .username),
+      (FormRow("Email", accessories: [emailTextField]), .email),
+      (FormRow("Password", accessories: [passwordTextField]), .password),
+      (FormRow("Bio", accessories: [bioTextField]), .bio),
+    ]
+    let currentFocusLabel = makeValueLabel()
 
-    focusBioButton.title = "Focus bio"
-    let focusEmailButton = NSButton()
-    focusEmailButton.addAction { [weak self] _ in
-      self?.model.focus = .email
-    }
-
-    focusEmailButton.title = "Focus email"
-    let focusPasswordButton = NSButton()
-    focusPasswordButton.addAction { [weak self] _ in
-      self?.model.focus = .password
-    }
-
-    focusPasswordButton.title = "Focus password"
-    let focusUsernameButton = NSButton()
-    focusUsernameButton.addAction { [weak self] _ in
-      self?.model.focus = .username
-    }
-
-    focusUsernameButton.title = "Focus username"
-    let resignFirstResponder = NSButton()
-    resignFirstResponder.addAction { [weak self] _ in
-      self?.view.window?.makeFirstResponder(nil)
-    }
-
-    resignFirstResponder.title = "Resign first responder"
-
-    let stack = NSStackView(views: [
-      usernameTextField,
-      emailTextField,
-      passwordTextField,
-      bioTextField,
-      currentFocusLabel,
-      focusUsernameButton,
-      focusEmailButton,
-      focusPasswordButton,
-      focusBioButton,
-      resignFirstResponder,
-    ])
-    stack.orientation = .vertical
-    stack.translatesAutoresizingMaskIntoConstraints = false
-
-    view.addSubview(stack)
-    NSLayoutConstraint.activate([
-      stack.topAnchor
-        .constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-      stack.leadingAnchor
-        .constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 24),
-      stack.trailingAnchor
-        .constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -24),
-    ])
+    addForm(
+      [
+        FormSection(
+          "Account",
+          footer: "The title of the field that the model says has focus is tinted.",
+          rows: fieldRows.map(\.0)
+        ),
+        FormSection(
+          "Focus",
+          footer: "The model and the window keep the focus in step: click into a field, or move the focus from here.",
+          rows: [
+            FormRow("Current focus", accessories: [currentFocusLabel]),
+            FormRow(
+              "Move the focus to",
+              accessories: [
+                makeButton("Username") { [weak self] in
+                  self?.model.focus = .username
+                },
+                makeButton("Email") { [weak self] in
+                  self?.model.focus = .email
+                },
+                makeButton("Password") { [weak self] in
+                  self?.model.focus = .password
+                },
+                makeButton("Bio") { [weak self] in
+                  self?.model.focus = .bio
+                },
+              ]
+            ),
+            FormRow(
+              "Resign first responder",
+              accessories: [
+                makeButton("Resign") { [weak self] in
+                  self?.view.window?.makeFirstResponder(nil)
+                },
+              ]
+            ),
+          ]
+        ),
+      ],
+      to: view
+    )
 
     observe { [unowned self] in
-      currentFocusLabel.stringValue = "Current focus: \(model.focus?.rawValue ?? "none")"
-      bioTextField.backgroundColor = nil
-      emailTextField.backgroundColor = nil
-      passwordTextField.backgroundColor = nil
-      usernameTextField.backgroundColor = nil
-      switch model.focus {
-      case .bio:
-        bioTextField.backgroundColor = .lightGray
-      case .email:
-        emailTextField.backgroundColor = .lightGray
-      case .password:
-        passwordTextField.backgroundColor = .lightGray
-      case .username:
-        usernameTextField.backgroundColor = .lightGray
-      case .none:
-        break
+      currentFocusLabel.stringValue = model.focus?.rawValue.capitalized ?? "None"
+      for (row, focus) in fieldRows {
+        row.titleLabel.textColor = model.focus == focus ? .controlAccentColor : .labelColor
       }
     }
   }

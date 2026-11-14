@@ -37,11 +37,7 @@ class OptionBindingsViewController: XiblessViewController<NSView>, AppKitCaseStu
     tabViewController.bind(selection: $model.fruit, options: Fruit.allCases)
     addChild(tabViewController)
     let tabView = tabViewController.view
-    tabView.translatesAutoresizingMaskIntoConstraints = false
-    NSLayoutConstraint.activate([
-      tabView.widthAnchor.constraint(equalToConstant: 320),
-      tabView.heightAnchor.constraint(equalToConstant: 110),
-    ])
+    tabView.heightAnchor.constraint(equalToConstant: 110).isActive = true
 
     let styleControl = NSSegmentedControl(
       labels: ["Bold", "Italic", "Underline"], trackingMode: .selectAny, target: nil, action: nil
@@ -66,52 +62,76 @@ class OptionBindingsViewController: XiblessViewController<NSView>, AppKitCaseStu
     tagPopUpButton.menu?.addItem(newTagItem)
 
     let noteScrollView = NSTextView.scrollableTextView()
-    noteScrollView.borderType = .bezelBorder
-    noteScrollView.translatesAutoresizingMaskIntoConstraints = false
-    NSLayoutConstraint.activate([
-      noteScrollView.widthAnchor.constraint(equalToConstant: 320),
-      noteScrollView.heightAnchor.constraint(equalToConstant: 60),
-    ])
+    noteScrollView.borderType = .noBorder
+    noteScrollView.wantsLayer = true
+    noteScrollView.layer?.cornerRadius = 6
+    noteScrollView.layer?.masksToBounds = true
+    noteScrollView.heightAnchor.constraint(equalToConstant: 80).isActive = true
     if let noteTextView = noteScrollView.documentView as? NSTextView {
       noteTextView.isRichText = false
+      noteTextView.textContainerInset = NSSize(width: 4, height: 6)
       noteTextView.bind(text: $model.note)
     }
 
-    let statusLabel = NSTextField(wrappingLabelWithString: "")
-    statusLabel.textColor = .secondaryLabelColor
+    let fruitLabel = makeValueLabel()
+    let styleLabel = makeValueLabel()
+    let gridLabel = makeValueLabel()
+    let tagLabel = makeValueLabel()
+    let noteLabel = makeValueLabel()
 
-    addColumn(
-      of: [
-        makeSectionLabel("One of several options"),
-        popUpButton,
-        segmentedControl,
-        tabView,
-        makeSectionLabel("A Bool for each segment"),
-        styleControl,
-        makeSectionLabel("A menu item's checkmark"),
-        viewOptionsButton,
-        makeSectionLabel("Options that change"),
-        tagPopUpButton,
-        makeSectionLabel("A text view's text"),
-        noteScrollView,
-        statusLabel,
+    addForm(
+      [
+        FormSection(
+          "One of several options",
+          footer: "The pop-up button, the segmented control and the tabs follow the same fruit.",
+          rows: [
+            FormRow("Pop-up button", accessories: [popUpButton]),
+            FormRow("Segmented control", accessories: [segmentedControl]),
+            FormRow(content: tabView),
+          ]
+        ),
+        FormSection(
+          "A Bool for each segment",
+          rows: [FormRow("Style", accessories: [styleControl])]
+        ),
+        FormSection(
+          "A menu item's checkmark",
+          rows: [FormRow("Grid", accessories: [viewOptionsButton])]
+        ),
+        FormSection(
+          "Options that change",
+          footer: "New Tag… adds a tag to the model, and the pop-up grows an item for it.",
+          rows: [FormRow("Tag", accessories: [tagPopUpButton])]
+        ),
+        FormSection(
+          "A text view's text",
+          rows: [FormRow(content: noteScrollView)]
+        ),
+        FormSection(
+          "Model",
+          rows: [
+            FormRow("Fruit", accessories: [fruitLabel]),
+            FormRow("Style", accessories: [styleLabel]),
+            FormRow("Grid", accessories: [gridLabel]),
+            FormRow("Tag", accessories: [tagLabel]),
+            FormRow("Note", accessories: [noteLabel]),
+          ]
+        ),
       ],
       to: view
     )
 
     observe { [unowned self] in
       let styles = [
-        model.isBold ? "bold" : nil,
-        model.isItalic ? "italic" : nil,
-        model.isUnderlined ? "underlined" : nil,
+        model.isBold ? "Bold" : nil,
+        model.isItalic ? "Italic" : nil,
+        model.isUnderlined ? "Underlined" : nil,
       ].compactMap(\.self)
-      statusLabel.stringValue = """
-        Fruit: \(model.fruit.title)
-        Style: \(styles.isEmpty ? "plain" : styles.joined(separator: ", "))
-        Grid: \(model.showsGrid ? "shown" : "hidden")
-        Tag: \(model.tag ?? "none")
-        Note: \(model.note.count) characters
-        """
+      fruitLabel.stringValue = model.fruit.title
+      styleLabel.stringValue = styles.isEmpty ? "Plain" : styles.joined(separator: ", ")
+      gridLabel.stringValue = model.showsGrid ? "Shown" : "Hidden"
+      tagLabel.stringValue = model.tag ?? "None"
+      noteLabel.stringValue = "\(model.note.count) characters"
     }
   }
 

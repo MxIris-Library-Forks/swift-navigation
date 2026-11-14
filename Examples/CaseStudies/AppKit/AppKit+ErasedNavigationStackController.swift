@@ -42,16 +42,32 @@ private final class ErasedRootViewController: XiblessViewController<NSView> {
       ErasedFeatureViewController(title: "Boolean \(value)")
     }
 
-    addColumn(
-      of: [
-        makeButton("Push a number") { [weak self] in
-          self?.traitCollection.push(value: Int.random(in: 1...1_000))
-        },
-        makeButton("Push a number → a string → a Boolean") { [weak self] in
-          self?.traitCollection.push(value: Int.random(in: 1...1_000))
-          self?.traitCollection.push(value: "Hello!")
-          self?.traitCollection.push(value: Bool.random())
-        },
+    addForm(
+      [
+        FormSection(
+          "Push",
+          footer: "Each type of data on the path has a destination of its own.",
+          rows: [
+            FormRow(
+              "A number",
+              accessories: [
+                makeButton("Push") { [weak self] in
+                  self?.traitCollection.push(value: Int.random(in: 1...1_000))
+                },
+              ]
+            ),
+            FormRow(
+              "A number, a string and a Boolean",
+              accessories: [
+                makeButton("Push") { [weak self] in
+                  self?.traitCollection.push(value: Int.random(in: 1...1_000))
+                  self?.traitCollection.push(value: "Hello!")
+                  self?.traitCollection.push(value: Bool.random())
+                },
+              ]
+            ),
+          ]
+        ),
       ],
       to: view
     )
@@ -73,21 +89,49 @@ private final class ErasedFeatureViewController: XiblessViewController<NSView> {
   override func viewDidLoad() {
     super.viewDidLoad()
 
-    addColumn(
-      of: [
-        makeSectionLabel(title ?? ""),
-        makeButton("Push a number") { [weak self] in
-          self?.traitCollection.push(value: Int.random(in: 1...1_000))
-        },
-        makeButton("Push a string") { [weak self] in
-          self?.traitCollection.push(value: "Hello!")
-        },
-        makeButton("Push a Boolean") { [weak self] in
-          self?.traitCollection.push(value: Bool.random())
-        },
-        makeButton("Dismiss") { [weak self] in
-          self?.traitCollection.dismiss()
-        },
+    addForm(
+      [
+        FormSection(
+          "Push",
+          rows: [
+            FormRow(
+              "A number",
+              accessories: [
+                makeButton("Push") { [weak self] in
+                  self?.traitCollection.push(value: Int.random(in: 1...1_000))
+                },
+              ]
+            ),
+            FormRow(
+              "A string",
+              accessories: [
+                makeButton("Push") { [weak self] in
+                  self?.traitCollection.push(value: "Hello!")
+                },
+              ]
+            ),
+            FormRow(
+              "A Boolean",
+              accessories: [
+                makeButton("Push") { [weak self] in
+                  self?.traitCollection.push(value: Bool.random())
+                },
+              ]
+            ),
+          ]
+        ),
+        FormSection(
+          rows: [
+            FormRow(
+              "This screen",
+              accessories: [
+                makeButton("Dismiss") { [weak self] in
+                  self?.traitCollection.dismiss()
+                },
+              ]
+            ),
+          ]
+        ),
       ],
       to: view
     )

@@ -27,21 +27,28 @@ class WiFiSettingsViewController: XiblessViewController<NSScrollView>, AppKitCas
     override func viewDidLoad() {
         super.viewDidLoad()
         collectionView.autoresizingMask = [.width, .height]
+        collectionView.backgroundColors = [.clear]
+        contentView.drawsBackground = false
         contentView.documentView = collectionView
         let collectionViewLayout = NSCollectionViewCompositionalLayout { sectionIndex, layoutEnvironment -> NSCollectionLayoutSection? in
             // Item
-            let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .absolute(sectionIndex == 0 ? 60 : 44))
+            let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .absolute(sectionIndex == 0 ? 52 : 44))
             let item = NSCollectionLayoutItem(layoutSize: itemSize)
-            item.contentInsets = .init(top: 0, leading: sectionIndex == 0 ? 10 : 30, bottom: 0, trailing: 10)
+            item.contentInsets = .init(top: 0, leading: 12, bottom: 0, trailing: 12)
             // Group
-            let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .absolute(sectionIndex == 0 ? 60 : 44))
+            let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .absolute(sectionIndex == 0 ? 52 : 44))
             let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
 
             // Section
+            // NB: Inset to the same centered column, no wider than 640 points, that the other case
+            //     studies' forms use.
+            let containerWidth = layoutEnvironment.container.effectiveContentSize.width
+            let sideInset = max(24, (containerWidth - 640) / 2)
+            let topInset: CGFloat = sectionIndex == 0 ? 20 : 0
             let section = NSCollectionLayoutSection(group: group)
-            section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 10, bottom: 0, trailing: 10)
+            section.contentInsets = NSDirectionalEdgeInsets(top: topInset, leading: sideInset, bottom: 0, trailing: sideInset)
             let decorationItem = NSCollectionLayoutDecorationItem.background(elementKind: NSCollectionView.DecorationElementKind.background)
-            decorationItem.contentInsets = .init(top: 0, leading: 10, bottom: 0, trailing: 10)
+            decorationItem.contentInsets = .init(top: topInset, leading: sideInset, bottom: 0, trailing: sideInset)
             section.decorationItems = [decorationItem]
             return section
         }
@@ -104,9 +111,7 @@ class WiFiSettingsViewController: XiblessViewController<NSScrollView>, AppKitCas
         }
 
         present(item: $model.destination.detail, style: .sheet) { model in
-            let vc = NetworkDetailViewController(model: model)
-            vc.preferredContentSize = .init(width: 300, height: 200)
-            return vc
+            NetworkDetailViewController(model: model)
         }
     }
 }
@@ -156,6 +161,12 @@ class WiFiSettingsSectionBackgroundView: NSBox, NSCollectionViewElement {
 
     func commonInit() {
         titlePosition = .noTitle
+        // NB: The same rounded box as the sections of the other case studies' forms.
+        boxType = .custom
+        fillColor = .quaternarySystemFill
+        borderColor = .separatorColor
+        borderWidth = 0.5
+        cornerRadius = 10
     }
 }
 
@@ -216,7 +227,7 @@ class WiFiSettingsConnectedNetworkViewItem: XiblessCollectionViewItem<NSView> {
     let statusButton = NSButton()
     let securedIconImageView = NSImageView(systemSymbolName: "lock.fill")
     let wifiIconImageView = NSImageView(systemSymbolName: "wifi")
-    let detailButton = NSButton(title: "Detail...", target: nil, action: nil)
+    let detailButton = NSButton(title: "Details…", target: nil, action: nil)
     override init(nibName nibNameOrNil: NSNib.Name?, bundle nibBundleOrNil: Bundle?) {
         super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
         let stackView = NSStackView()

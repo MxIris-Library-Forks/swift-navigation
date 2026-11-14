@@ -17,6 +17,7 @@
 - [0010-appkit-animations-case-study.md](Evolutions/0010-appkit-animations-case-study.md)：AppKit 动画案例。
 - [0011-appkit-stack-navigation.md](Evolutions/0011-appkit-stack-navigation.md)：可选集成 AppKitPlus，把 UIKit 的栈式导航搬到 AppKit。
 - [draft-appkit-remove-shim.md](Evolutions/draft-appkit-remove-shim.md)：去掉 AppKitNavigationShim，不再交换系统方法。
+- [draft-appkit-examples-redesign.md](Evolutions/draft-appkit-examples-redesign.md)：AppKit 案例改用系统设置式的分组排版，弹出的 sheet 都能关掉。
 
 ## Internal
 

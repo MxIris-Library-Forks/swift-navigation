@@ -64,24 +64,41 @@ private final class StaticRootViewController: XiblessViewController<NSView> {
   override func viewDidLoad() {
     super.viewDidLoad()
 
-    let pathLabel = NSTextField(wrappingLabelWithString: "")
-    pathLabel.textColor = .secondaryLabelColor
-    var views: [NSView] = StaticNavigationStackController.Model.Path.allCases.map { feature in
-      makeButton("Push \(feature.title.lowercased())") { [weak self] in
-        self?.traitCollection.push(value: feature)
-      }
+    let pathLabel = makeValueLabel()
+    let featureRows = StaticNavigationStackController.Model.Path.allCases.map { feature in
+      FormRow(
+        feature.title,
+        accessories: [
+          makeButton("Push") { [weak self] in
+            self?.traitCollection.push(value: feature)
+          },
+        ]
+      )
     }
-    views.append(
-      makeButton("Push feature 1 → 2 → 3") { [weak self] in
-        self?.model.path.append(contentsOf: [.feature1, .feature2, .feature3])
-      }
+    let allFeaturesRow = FormRow(
+      "All three",
+      subtitle: "Feature 1 → 2 → 3",
+      accessories: [
+        makeButton("Push") { [weak self] in
+          self?.model.path.append(contentsOf: [.feature1, .feature2, .feature3])
+        },
+      ]
     )
-    views.append(pathLabel)
-    addColumn(of: views, to: view)
+
+    addForm(
+      [
+        FormSection("Push", rows: featureRows + [allFeaturesRow]),
+        FormSection(
+          "Model",
+          footer: "Going back with the back button, ⌘↑ or a swipe shortens the path too.",
+          rows: [FormRow("Path", accessories: [pathLabel])]
+        ),
+      ],
+      to: view
+    )
 
     observe { [unowned self] in
-      pathLabel.stringValue =
-        "Path: \(model.path.isEmpty ? "empty" : model.path.map(\.title).joined(separator: " → "))"
+      pathLabel.stringValue = model.path.isEmpty ? "Empty" : model.path.map(\.title).joined(separator: " → ")
     }
   }
 }
@@ -104,18 +121,35 @@ private final class StaticFeatureViewController: XiblessViewController<NSView> {
   override func viewDidLoad() {
     super.viewDidLoad()
 
-    var views: [NSView] = [makeSectionLabel(feature.title)]
-    views += StaticNavigationStackController.Model.Path.allCases.map { feature in
-      makeButton("Push \(feature.title.lowercased())") { [weak self] in
-        self?.traitCollection.push(value: feature)
-      }
+    let featureRows = StaticNavigationStackController.Model.Path.allCases.map { feature in
+      FormRow(
+        feature.title,
+        accessories: [
+          makeButton("Push") { [weak self] in
+            self?.traitCollection.push(value: feature)
+          },
+        ]
+      )
     }
-    views.append(
-      makeButton("Dismiss") { [weak self] in
-        self?.traitCollection.dismiss()
-      }
+
+    addForm(
+      [
+        FormSection("Push", rows: featureRows),
+        FormSection(
+          rows: [
+            FormRow(
+              "This screen",
+              accessories: [
+                makeButton("Dismiss") { [weak self] in
+                  self?.traitCollection.dismiss()
+                },
+              ]
+            ),
+          ]
+        ),
+      ],
+      to: view
     )
-    addColumn(of: views, to: view)
   }
 }
 

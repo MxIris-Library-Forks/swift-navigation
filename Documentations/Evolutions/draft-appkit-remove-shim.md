@@ -33,6 +33,11 @@
 - AppKitNavigation 从此只能用 Xcode 27（macOS 27 SDK）编译。`Package@swift-6.0/6.1/6.2.swift` 来自上游，保留，只删 shim target；上游从来没有这个 target，删掉后与上游更接近。
 - `UIKitNavigationShim` 也在交换方法，不在这一批的范围里。
 
+后续项：
+
+- 把弹出与 push 两套「先出现、再离开且下屏」的结束检测合成一个共用 helper（见 `Internal/ReviewDecisions.md`）。
+- fork 的 CI 仍用 Xcode 16.4，编不过 AppKitNavigation 了；要么换成 Xcode 27，要么不再编它。CI 在这次改动之前就已经是红的。
+
 ## 决策日志
 
 | 日期 | 决定 | 理由 |
@@ -42,9 +47,10 @@
 | 2026-11-14 | push 的就绪条件看导航栈而不是发起者 | 起草时打算统一用「发起者在屏幕上」，实现前发现这会让被盖住的发起者推不出新页面，改变既有行为；弹出 sheet 和 popover 确实需要发起者的窗口，所以只在 push 上区别对待 |
 | 2026-11-14 | 弹出之后立刻同步记一次「已列入 `presentedViewControllers`」，不只靠 run loop 检查 | 测试里用户在同一轮 run loop 内就关掉了 sheet，检查还没来得及看到它被弹出，于是永远等不到「离开列表」 |
 | 2026-11-14 | `RunLoopWait` 除了 run loop 要休眠时，每次一轮运行结束时也检查，并排在所有同阶段的观察者（含 Core Animation 的提交）之后 | AppKit 每取一个事件都单独跑一轮 run loop，这样用户关闭弹出内容后，下一个事件被处理之前就已写回绑定，用户紧接着再要求弹出不会被这次写回冲掉。这个改动作用于所有用 `RunLoopWait` 的风格，AppKit 测试全部通过 |
+| 2026-11-14 | 用户关闭后的写回不再与 AppKit 的关闭同步发生，`testPresentedSheetCanBePresentedAgainAfterTheUserDismissedIt` 改为等写回之后再立刻设回 `true` | 交换方法时写回发生在 `viewDidDisappear` 里，不交换就没有同步的时机。原测试在同一段同步代码里关闭 sheet 又设回 `true`，真实使用中两次操作之间总隔着事件循环；改后仍覆盖它要测的情形：中间那次 `false` 没被 `observe` 看到时，内容照样能再弹出 |
 | 2026-11-14 | 存取面板测试经私有方法 `completeWithReturnCode:url:urls:` 模拟用户确认，私有方法只出现在测试里 | 面板在另一个进程里运行，本进程里的 `ok(_:)` 直接抛「not implemented」，公开 API 里没有别的办法让面板以「确定」结束；调用前先检查方法还在，不在就让测试失败而不是崩溃。旧测试同样调用私有 setter。临时关掉写回时，四个确认用例都会失败 |
 | 2026-11-14 | 案例里的存储面板在弹出前先清空 `savedURL` | 取消不再动绑定，不清空的话，取消后的记录会显示上一次选的文件名 |
 | 2026-11-14 | 自审：模态窗口、自定义转场与 push 在窗口最小化时也就绪 | 自审指出它们本不需要发起者的窗口在屏幕上，改动后却会一直等到窗口还原，而改动前是立刻弹出。先写了两条在最小化窗口上弹出与 push 的测试，修前失败、修后通过 |
 | 2026-11-14 | 自审其余发现登记进 `Internal/ReviewDecisions.md` | 共 10 条：1 条已修（上一行）；2 条误报；1 条暂缓；5 条是方案有意接受的代价；存储面板取消时的写法留给用户定，见下一行 |
 | 2026-11-14 | 存储面板取消时不动绑定，待用户确认 | 在 `main` 上实测，交换方法的旧实现在用户取消时会把绑定写成 `nil`。用户开工前选的方案写的是「取消时绑定不变」，当时没有说明旧行为，所以交付时请用户再确认一次 |
-| 2026-11-14 | 用户关闭后的写回不再与 AppKit 的关闭同步发生，`testPresentedSheetCanBePresentedAgainAfterTheUserDismissedIt` 改为等写回之后再立刻设回 `true` | 交换方法时写回发生在 `viewDidDisappear` 里，不交换就没有同步的时机。原测试在同一段同步代码里关闭 sheet 又设回 `true`，真实使用中两次操作之间总隔着事件循环；改后仍覆盖它要测的情形：中间那次 `false` 没被 `observe` 看到时，内容照样能再弹出 |
+| 2026-11-14 | 实现完成，待用户看过后收尾 | 文档已同步：本提案、`present` / `destination` / `navigationDestination` 与存取面板绑定的文档注释、`Internal/ReviewDecisions.md`。改动只涉及内部机制与既有 API 的语义，不需要另写使用指南或实现说明，也没有新术语 |

@@ -22,7 +22,7 @@
 
 1. **弹出生命周期**（已完成）：`Presentation.swift` 与 `NavigationDestination.swift` 改用 `RunLoopWait`，删掉 shim 里 `NSViewController` 的部分。补测试：用户关掉以 popover、模态窗口弹出的视图控制器时绑定写回；被别的页面盖住的发起者照样立刻 push。方法命名测试改用 `-[NSButton appKitNavigationIsOn]` 作扫描锚点。`RunLoopWait` 的检查时机同时调整，见决策日志。
 2. **存取面板绑定**（已完成）：改走 `sheet` / `modal` 的结果，删掉 shim 里 `NSSavePanel` 的部分和检查私有 setter 的测试。补测试：确认后写回、取消不动、重新绑定只写新绑定。方法命名测试不再有例外。案例里的存储面板改为弹出前先清空上次选的 URL。
-3. **NSControl 与 target 本身**：删掉重复声明与 `TargetActionProxy` 的变通；shim 已空，从四份 Package 清单里删掉这个 target，删掉目录。
+3. **NSControl 与 target 本身**（已完成）：删掉重复声明与 `TargetActionProxy` 的变通；shim 已空，从四份 Package 清单里删掉这个 target，删掉目录。
 
 没有询问就采用的假设：
 

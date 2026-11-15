@@ -1,8 +1,8 @@
-# Draft - 去掉 AppKitNavigationShim：不再交换系统方法
+# 0012 - 去掉 AppKitNavigationShim：不再交换系统方法
 
-- **状态**: In Progress
+- **状态**: Implemented
 - **创建日期**: 2026-11-14
-- **最后更新**: 2026-11-14
+- **最后更新**: 2026-11-15
 - **实现分支**: `appkit-remove-shim`
 
 ## 摘要
@@ -57,3 +57,4 @@
 | 2026-11-14 | 实现完成，待用户看过后收尾 | 文档已同步：本提案、`present` / `destination` / `navigationDestination` 与存取面板绑定的文档注释、`Internal/ReviewDecisions.md`。改动只涉及内部机制与既有 API 的语义，不需要另写使用指南或实现说明，也没有新术语 |
 | 2026-11-14 | 由绑定触发的视图控制器关闭，在 `dismiss(_:)` 返回后立刻检查、当场写回 | 用户指出 AppKit 的 `dismiss(_:)` 返回时内容已经离屏，与 UIKit 不同。交换方法时这条路是同步写回的，去掉之后却要等这一轮 run loop 结束；用户选择只恢复这一条，用户自己关掉的仍在这一轮结束时写回。新测试借自定义事务键在绑定变化应用完的那一刻检查 `onDismiss` 是否已运行，修前失败、修后通过 |
 | 2026-11-14 | 用户确认：存储面板取消时绑定保持原值 | 用户看过旧实现「取消即写成 `nil`」的实测结果后，仍选择取消时不动绑定；案例在弹出前清空 `savedURL` 的那一行保留 |
+| 2026-11-15 | 落地：合进 `main` 并推送，编号 0012 | 用户要求收尾，与在它之上做的示例改版（0013）一同落地。在合并后的最终代码上验证：全量 `swift test` 只有 `ButtonStateTests.testAsyncAnimationWarning` 失败，这是 macOS 27.2 上早就存在的上游问题，两次改动都没有碰它所在的模块；打开 AppKitPlus trait 的 AppKit 测试全部通过（XCTest 94 个，Swift Testing 78 个）；`CaseStudies` 的 macOS 版编译通过。文档判断不变：不需要另写使用指南或实现说明，没有新术语 |

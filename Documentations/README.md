@@ -18,7 +18,7 @@
 - [0011-appkit-stack-navigation.md](Evolutions/0011-appkit-stack-navigation.md)：可选集成 AppKitPlus，把 UIKit 的栈式导航搬到 AppKit。
 - [0012-appkit-remove-shim.md](Evolutions/0012-appkit-remove-shim.md)：去掉 AppKitNavigationShim，不再交换系统方法。
 - [0013-appkit-examples-redesign.md](Evolutions/0013-appkit-examples-redesign.md)：macOS 示例改用侧边栏外壳与系统设置式排版，每个弹出行标出导航状态，弹出的 sheet 都能关掉。
-- [draft-raise-macos-minimum.md](Evolutions/draft-raise-macos-minimum.md)：把两份带 AppKitPlus trait 的清单的 macOS 下限从 12 提到 14。
+- [0014-raise-macos-minimum.md](Evolutions/0014-raise-macos-minimum.md)：把两份带 AppKitPlus trait 的清单的 macOS 下限从 12 提到 14。
 
 ## Internal
 

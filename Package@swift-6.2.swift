@@ -13,7 +13,7 @@ let package = Package(
   name: "swift-navigation",
   platforms: [
     .iOS(.v13),
-    .macOS(.v12),
+    .macOS(.v14),
     .tvOS(.v13),
     .watchOS(.v6),
   ],

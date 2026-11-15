@@ -19,3 +19,4 @@
 | 0011 | [可选集成 AppKitPlus：把 UIKit 的栈式导航搬到 AppKit](0011-appkit-stack-navigation.md) | Implemented |
 | 0012 | [去掉 AppKitNavigationShim：不再交换系统方法](0012-appkit-remove-shim.md) | Implemented |
 | 0013 | [macOS 示例改用侧边栏外壳与系统设置式排版](0013-appkit-examples-redesign.md) | Implemented |
+| draft | [把 macOS 下限提到 14](draft-raise-macos-minimum.md) | In Progress |

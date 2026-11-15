@@ -25,7 +25,7 @@ AppKitPlus 的 `main` 已把最低系统提到 macOS 14（AppKitPlus 提案 0117
 ## 后续项
 
 - AppKitPlus-Release 发出要求 macOS 14 的版本后，再把示例锁定的版本升上去；`Package.swift` 里 AppKitPlus-Release 的版本下限要不要跟着提，到时再定。
-- 上面那 5 条弃用警告要不要改，待用户定。
+- 那 5 条弃用警告先留着，等上游改用新 API 或提高下限时再跟进。
 - fork 发版时，版本号要体现最低系统提高这一破坏性变更。
 - AppKitNavigation 自己的几处 `@available(macOS 14, *)` 可以删掉；`Perception` trait 在 macOS 上可能不再必需，可以评估。
 
@@ -37,3 +37,4 @@ AppKitPlus 的 `main` 已把最低系统提到 macOS 14（AppKitPlus 提案 0117
 | 2026-11-15 | 用户批准，开始实现 | 用户知道这对所有使用方都是破坏性变更，决定现在就提，不等 AppKitPlus 发版 |
 | 2026-11-15 | 多出的 5 条弃用警告先不改，交给用户定 | 改前改后各从零编一次对比：多出的只有这 5 条，都在与上游共用的文件里；改不改是在「编译干净」与「少和上游分叉」之间取舍 |
 | 2026-11-15 | 实现完成，待用户看过后收尾 | 全量 `swift test` 只有 `ButtonStateTests.testAsyncAnimationWarning` 失败，与改前相同，是 macOS 27.2 上早就存在的上游问题；打开 AppKitPlus trait 的 AppKit 测试全部通过（XCTest 94 个，Swift Testing 78 个）；`CaseStudies` 的 macOS 版编译通过。文档判断：使用指南里的系统要求已同步，不需要另写实现说明，没有新术语 |
+| 2026-11-15 | 5 条弃用警告先留着 | 用户选定：不改与上游共用的文件，合并上游时不增加冲突 |

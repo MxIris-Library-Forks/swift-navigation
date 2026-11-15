@@ -33,7 +33,7 @@ any trait replaces them, and AppKitNavigation needs them.
 In an Xcode project, turn the trait on for the package in the project's Package Dependencies
 (Xcode 26.4 or later), together with the default traits.
 
-The trait needs Swift 6.2 or later and macOS 12 or later. It adds AppKitPlus-Release 0.21.0 or
+The trait needs Swift 6.2 or later and macOS 14 or later. It adds AppKitPlus-Release 0.21.0 or
 later to your app; AppKitPlus is a dynamic framework that the app embeds.
 
 ### A stack driven by a path
